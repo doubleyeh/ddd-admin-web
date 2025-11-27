@@ -10,6 +10,7 @@ export async function loadAndAddRoutes(router: Router): Promise<boolean> {
     const { user: u, permissions, menus } = await http.get<any>('/account/info')
     userStore.setAccountInfo(u, permissions)
     menuStore.setMenus(menus)
+    
     if (menuStore.dynamicRoutes.length > 0) {
       menuStore.dynamicRoutes.forEach(r => {
         let path = r.path || ''
@@ -18,10 +19,11 @@ export async function loadAndAddRoutes(router: Router): Promise<boolean> {
         const childRoute = { ...r, path }
         router.addRoute('Layout', childRoute)
       })
-      menuStore.setRoutesAdded()
-      return true
     }
-    return false
+    
+    menuStore.setRoutesAdded()
+    return true
+    
   } catch (error) {
     userStore.logout()
     return false

@@ -15,7 +15,7 @@ const fixedRoutes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'Home',
-        component: () => import('@/views/Home.vue'),
+        component: () => import('@/views/home.vue'),
         meta: { requiresAuth: true, title: '首页', icon: '🏠' }
       },
       {
