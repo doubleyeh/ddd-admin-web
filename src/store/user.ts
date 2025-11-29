@@ -1,18 +1,5 @@
+import type { LoginResDTO, UserInfoDTO } from '@/types/auth'
 import { defineStore } from 'pinia'
-
-export interface LoginResDTO {
-  token: string
-  username: string
-  tenantId: string
-}
-
-export interface UserInfoDTO {
-    id: string | number
-    username: string
-    nickname: string
-    state: number
-    createTime: string
-}
 
 export const useUserStore = defineStore('user', {
   state: () => ({ 
@@ -23,7 +10,12 @@ export const useUserStore = defineStore('user', {
     permissions: [] as string[]
   }),
   getters: {
-    isLoggedIn: (state) => !!state.token
+    isLoggedIn: (state) => !!state.token,
+    hasPermission: (state) => {
+      return (perm: string): boolean => {
+        return state.permissions.includes(perm)
+      }
+    }
   },
   actions: {
     login(userInfo: LoginResDTO) {
