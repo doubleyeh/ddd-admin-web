@@ -1,23 +1,24 @@
 <template>
   <n-card :bordered="false" class="h-full">
-    <div class="flex items-center mb-4">
+    <div class="flex items-center mb-4 flex-nowrap">
+    <n-space wrap-item>
       <n-input
         v-model:value="query.tenantId"
-        placeholder="租户ID"
+        placeholder="租户编码"
         clearable
-        class="w-40 mr-4"
+        class="w-28"
       />
       <n-input
         v-model:value="query.name"
         placeholder="租户名称"
         clearable
-        class="w-40 mr-4"
+        class="w-28"
       />
-      <n-space>
-        <n-button type="primary" @click="handleSearch">查询</n-button>
-        <n-button @click="handleReset">重置</n-button>
-      </n-space>
-
+    </n-space>
+    
+    <n-space class="ml-4">
+      <n-button type="primary" @click="handleSearch">查询</n-button>
+      <n-button @click="handleReset">重置</n-button>
       <n-button
         v-if="userStore.hasPermission('tenant:create')"
         type="success"
@@ -26,7 +27,9 @@
       >
         新增租户
       </n-button>
-    </div>
+    </n-space>
+    
+  </div>
 
     <n-data-table
       :columns="columns"
