@@ -60,7 +60,7 @@
         label-placement="top"
         class="mt-4"
       >
-        <n-form-item label="租户ID" path="tenantId">
+        <n-form-item v-if="isEdit" label="租户编码" path="tenantId">
           <n-input v-model:value="formModel.tenantId" :disabled="isEdit" />
         </n-form-item>
         <n-form-item label="租户名称" path="name">
@@ -133,10 +133,10 @@ const pagination = reactive({
 })
 
 const formRules = {
-  tenantId: [
-    { required: true, message: '请输入租户ID', trigger: 'blur' },
-    { max: 50, message: '长度不能超过50个字符', trigger: 'blur' }
-  ],
+  // tenantId: [
+  //   { required: true, message: '请输入租户编码', trigger: 'blur' },
+  //   { max: 50, message: '长度不能超过50个字符', trigger: 'blur' }
+  // ],
   name: [
     { required: true, message: '请输入租户名称', trigger: 'blur' },
     { max: 100, message: '长度不能超过100个字符', trigger: 'blur' }
@@ -145,8 +145,8 @@ const formRules = {
 
 const createColumns = (): DataTableColumns<TenantDTO> => {
   return [
-    { title: 'ID', key: 'id', width: 80 },
-    { title: '租户ID', key: 'tenantId' },
+    // { title: 'ID', key: 'id', width: 80 },
+    { title: '租户编码', key: 'tenantId' },
     { title: '租户名称', key: 'name' },
     { title: '联系人', key: 'contactPerson' },
     { title: '联系电话', key: 'contactPhone' },

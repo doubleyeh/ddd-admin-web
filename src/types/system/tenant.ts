@@ -1,5 +1,5 @@
 export interface TenantDTO {
-  id: number
+  id: string
   tenantId: string
   name: string
   contactPerson: string
@@ -8,7 +8,7 @@ export interface TenantDTO {
 }
 
 export interface TenantSaveDTO {
-  id?: number
+  id?: string
   tenantId: string
   name: string
   contactPerson: string
