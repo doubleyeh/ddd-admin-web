@@ -1,5 +1,5 @@
 import { http } from '@/utils/http'
-import type { RestResponse, Page } from '@/types/api'
+import type { Page } from '@/types/api'
 import type { TenantCreateResultDTO, TenantDTO, TenantSaveDTO } from '@/types/system/tenant'
 
 export function findPage(
@@ -24,7 +24,7 @@ export function update(id: string, data: TenantSaveDTO): Promise<TenantDTO> {
 }
 
 export function updateState(id: string, state: Boolean): Promise<TenantDTO> {
-  return http.put(`/tenants/${id}?state=${state}`, {})
+  return http.put(`/tenants/${id}/state?state=${state}`, {})
 }
 
 export function deleteById(id: string): Promise<void> {

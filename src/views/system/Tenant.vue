@@ -118,7 +118,13 @@ const createColumns = (): DataTableColumns<TenantDTO> => {
             title: '是否启用',
             key: 'enabled',
             render(row) {
-                return h(NSwitch, { value: row.enabled, disabled: true })
+                return h(NSwitch, {
+                    value: row.enabled,
+                    disabled: !userStore.hasPermission('tenant:update'),
+                    'onUpdate:value': (value: boolean) => {
+                        handleUpdateState(row.id, value)
+                    }
+                })
             }
         },
         {
@@ -170,6 +176,23 @@ const createColumns = (): DataTableColumns<TenantDTO> => {
 }
 
 const columns = createColumns()
+
+async function handleUpdateState(id: string, enabled: boolean) {
+    const index = tableData.value.findIndex((item: TenantDTO) => item.id === id)
+    if (index > -1) {
+        tableData.value[index].enabled = enabled
+    }
+
+    try {
+        await TenantApi.updateState(id, enabled)
+        message.success(`${enabled ? '启用' : '禁用'}成功`)
+    } catch (error: any) {
+        message.error(error.message || `${enabled ? '启用' : '禁用'}失败`)
+        if (index > -1) {
+            tableData.value[index].enabled = !enabled
+        }
+    }
+}
 
 async function fetchTableData() {
     loading.value = true
