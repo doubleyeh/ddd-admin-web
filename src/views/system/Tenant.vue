@@ -180,7 +180,7 @@ const columns = createColumns()
 async function handleUpdateState(id: string, enabled: boolean) {
     const index = tableData.value.findIndex((item: TenantDTO) => item.id === id)
     if (index > -1) {
-        tableData.value[index].enabled = enabled
+        tableData.value[index]!.enabled = enabled
     }
 
     try {
@@ -189,7 +189,7 @@ async function handleUpdateState(id: string, enabled: boolean) {
     } catch (error: any) {
         message.error(error.message || `${enabled ? '启用' : '禁用'}失败`)
         if (index > -1) {
-            tableData.value[index].enabled = !enabled
+            tableData.value[index]!.enabled = !enabled
         }
     }
 }
