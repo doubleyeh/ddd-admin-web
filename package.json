@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@vueuse/core": "^14.0.0",
+    "dayjs": "^1.11.19",
     "naive-ui": "^2.43.1",
     "pinia": "^3.0.4",
     "unplugin-auto-import": "^20.2.0",

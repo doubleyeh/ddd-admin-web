@@ -64,6 +64,7 @@ import {
 import * as UserApi from '@/api/system/user'
 import type { UserDTO, UserPostDTO, UserPutDTO, UserQuery } from '@/types/system/user'
 import { useUserStore } from '@/store/user'
+import dayjs from 'dayjs'
 
 const userStore = useUserStore()
 const message = useMessage()
@@ -113,20 +114,29 @@ const formRules = {
         { required: true, message: '请选择用户状态', trigger: 'change' }
     ],
     password: [
-        { required: true, message: '请输入密码', trigger: 'blur', trigger: ['input', 'blur'] },
+        { required: true, message: '请输入密码', trigger: ['input', 'blur'] },
         { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
     ]
 }
 
 const createColumns = (): DataTableColumns<UserDTO> => {
     return [
-        { title: 'ID', key: 'id', width: 80 },
+        {
+            title: '序号',
+            key: 'index',
+            width: 60,
+            align: 'center',
+            render(_, rowIndex: number){
+                const rowNum = (pagination.page-1) * pagination.pageSize + rowIndex+1;
+                return h('span', rowNum)
+            },
+        },
         { title: '用户名', key: 'username' },
         { title: '昵称', key: 'nickname' },
         {
             title: '用户状态',
             key: 'state',
-            render(row) {
+            render(row: UserDTO) {
                 return h(NSwitch, {
                     value: row.state === 1,
                     disabled: !userStore.hasPermission('user:update'),
@@ -136,7 +146,18 @@ const createColumns = (): DataTableColumns<UserDTO> => {
                 })
             }
         },
-        { title: '创建时间', key: 'createTime' },
+        { title: '创建时间', 
+            key: 'createTime',
+            width: 120,
+            render(row) {
+                const dateTimeStr = row.createTime;
+                
+                if (dateTimeStr) {
+                    return dayjs(dateTimeStr).format('YYYY-MM-DD');
+                }
+                return '';
+            }
+        },
         {
             title: '操作',
             key: 'actions',
@@ -208,10 +229,11 @@ const createColumns = (): DataTableColumns<UserDTO> => {
 
 const columns = createColumns()
 
-async function handleUpdateState(id: string | number, state: 0 | 1) {
+async function handleUpdateState(id: string, state: 0 | 1) {
     const index = tableData.value.findIndex((item: UserDTO) => item.id === id)
-    if (index > -1) {
-        tableData.value[index].state = state
+    const row = tableData.value[index]
+    if (row){
+        row.state = state;
     }
 
     try {
@@ -220,7 +242,7 @@ async function handleUpdateState(id: string | number, state: 0 | 1) {
         message.success(`${state === 1 ? '启用' : '禁用'}成功`)
     } catch (error: any) {
         message.error(error.message || `${state === 1 ? '启用' : '禁用'}失败`)
-        if (index > -1) {
+        if (index > -1 && tableData.value[index]) {
             tableData.value[index].state = state === 1 ? 0 : 1
         }
     }

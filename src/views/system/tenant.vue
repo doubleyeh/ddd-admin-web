@@ -109,7 +109,16 @@ const formRules = {
 
 const createColumns = (): DataTableColumns<TenantDTO> => {
     return [
-        // { title: 'ID', key: 'id', width: 80 },
+        {
+            title: '序号',
+            key: 'index',
+            width: 60,
+            align: 'center',
+            render(_, rowIndex: number){
+                const rowNum = (pagination.page-1) * pagination.pageSize + rowIndex+1;
+                return h('span', rowNum)
+            },
+        },
         { title: '租户编码', key: 'tenantId' },
         { title: '租户名称', key: 'name' },
         { title: '联系人', key: 'contactPerson' },

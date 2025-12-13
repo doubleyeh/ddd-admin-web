@@ -1,5 +1,5 @@
 export interface UserDTO {
-  id: string | number
+  id: string
   username: string
   nickname: string
   state: 0 | 1
@@ -7,6 +7,7 @@ export interface UserDTO {
 }
 
 export interface UserPostDTO {
+  id?: string
   username: string
   nickname: string
   state: 0 | 1
@@ -14,7 +15,7 @@ export interface UserPostDTO {
 }
 
 export interface UserPutDTO {
-  id: string | number
+  id: string
   username?: string
   nickname?: string
   state?: 0 | 1

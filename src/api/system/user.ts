@@ -12,21 +12,21 @@ export function findPage(
     size,
     ...query,
   }
-  return http.get('/api/users', { params })
+  return http.get('/users', { params })
 }
 
 export function create(data: UserPostDTO): Promise<UserDTO> {
-  return http.post('/api/users', data)
+  return http.post('/users', data)
 }
 
 export function update(id: number | string, data: UserPutDTO): Promise<UserDTO> {
-  return http.put(`/api/users/${id}`, data)
+  return http.put(`/users/${id}`, data)
 }
 
 export function resetPassword(id: number | string): Promise<string> {
-  return http.put(`/api/users/${id}/password`, {})
+  return http.put(`/users/${id}/password`, {})
 }
 
 export function deleteById(id: number | string): Promise<void> {
-  return http.delete(`/api/users/${id}`)
+  return http.delete(`/users/${id}`)
 }
