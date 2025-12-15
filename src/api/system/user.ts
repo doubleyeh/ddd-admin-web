@@ -19,14 +19,18 @@ export function create(data: UserPostDTO): Promise<UserDTO> {
   return http.post('/users', data)
 }
 
-export function update(id: number | string, data: UserPutDTO): Promise<UserDTO> {
+export function update(id: string, data: UserPutDTO): Promise<UserDTO> {
   return http.put(`/users/${id}`, data)
 }
 
-export function resetPassword(id: number | string): Promise<string> {
+export function updateState(id: string, state: number): Promise<UserDTO> {
+  return http.put(`/users/${id}/state?state=${state}`, {})
+}
+
+export function resetPassword(id: string): Promise<string> {
   return http.put(`/users/${id}/password`, {})
 }
 
-export function deleteById(id: number | string): Promise<void> {
+export function deleteById(id: string): Promise<void> {
   return http.delete(`/users/${id}`)
 }

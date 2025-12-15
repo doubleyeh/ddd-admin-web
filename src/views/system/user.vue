@@ -126,8 +126,8 @@ const createColumns = (): DataTableColumns<UserDTO> => {
             key: 'index',
             width: 60,
             align: 'center',
-            render(_, rowIndex: number){
-                const rowNum = (pagination.page-1) * pagination.pageSize + rowIndex+1;
+            render(_, rowIndex: number) {
+                const rowNum = (pagination.page - 1) * pagination.pageSize + rowIndex + 1;
                 return h('span', rowNum)
             },
         },
@@ -146,12 +146,13 @@ const createColumns = (): DataTableColumns<UserDTO> => {
                 })
             }
         },
-        { title: '创建时间', 
+        {
+            title: '创建时间',
             key: 'createTime',
             width: 120,
             render(row) {
                 const dateTimeStr = row.createTime;
-                
+
                 if (dateTimeStr) {
                     return dayjs(dateTimeStr).format('YYYY-MM-DD');
                 }
@@ -232,13 +233,12 @@ const columns = createColumns()
 async function handleUpdateState(id: string, state: 0 | 1) {
     const index = tableData.value.findIndex((item: UserDTO) => item.id === id)
     const row = tableData.value[index]
-    if (row){
+    if (row) {
         row.state = state;
     }
 
     try {
-        const data: UserPutDTO = { id, state }
-        await UserApi.update(id, data)
+        await UserApi.updateState(id, state)
         message.success(`${state === 1 ? '启用' : '禁用'}成功`)
     } catch (error: any) {
         message.error(error.message || `${state === 1 ? '启用' : '禁用'}失败`)
@@ -329,7 +329,7 @@ async function handleSave() {
     return true
 }
 
-async function handleResetPassword(id: string | number) {
+async function handleResetPassword(id: string) {
     try {
         const newPassword = await UserApi.resetPassword(id)
         message.success(`重置成功，新密码为: ${newPassword}`)
@@ -338,7 +338,7 @@ async function handleResetPassword(id: string | number) {
     }
 }
 
-async function handleDelete(id: string | number) {
+async function handleDelete(id: string) {
     try {
         await UserApi.deleteById(id)
         message.success('删除成功')
