@@ -1,23 +1,27 @@
 <template>
   <n-card :bordered="false" class="h-full">
-    <div class="flex items-center mb-4 flex-nowrap">
-      <n-space wrap-item>
-        <n-select
-          v-if="isSuperTenant"
-          v-model:value="query.tenantId"
-          :options="allTenantOptions"
-          placeholder="选择租户"
-          clearable
-        />
+    <div class="flex items-center mb-4 w-full flex-nowrap">
+      <n-space wrap-item class="w-4/6">
+        <div class="w-40">
+          <n-select
+            v-if="isSuperTenant"
+            v-model:value="query.tenantId"
+            :options="allTenantOptions"
+            placeholder="选择租户"
+            clearable
+            filterable
+          />
+        </div>
         <n-input v-model:value="query.username" placeholder="用户名" clearable class="w-28" />
         <n-input v-model:value="query.nickname" placeholder="昵称" clearable class="w-28" />
-        <n-select
-          v-model:value="query.state"
-          :options="stateOptions"
-          placeholder="用户状态"
-          clearable
-          class="w-28"
-        />
+        <div class="w-28">
+          <n-select
+            v-model:value="query.state"
+            :options="stateOptions"
+            placeholder="用户状态"
+            clearable
+          />
+        </div>
       </n-space>
 
       <n-space class="ml-4">
