@@ -26,4 +26,5 @@ export interface UserQuery {
   username: string
   nickname: string
   state: 0 | 1 | null
+  tenantId: string | null
 }

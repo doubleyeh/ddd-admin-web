@@ -1,6 +1,11 @@
 import { http } from '@/utils/http'
 import type { Page } from '@/types/api'
-import type { TenantCreateResultDTO, TenantDTO, TenantSaveDTO } from '@/types/system/tenant'
+import type {
+  TenantCreateResultDTO,
+  TenantDTO,
+  TenantOptionsDTO,
+  TenantSaveDTO,
+} from '@/types/system/tenant'
 
 export function findPage(
   page: number,
@@ -13,6 +18,13 @@ export function findPage(
     ...query,
   }
   return http.get('/tenants', { params })
+}
+
+export function getOptions(name: String = ''): Promise<TenantOptionsDTO[]> {
+  const params = {
+    name,
+  }
+  return http.get('/tenants/options', { params })
 }
 
 export function create(data: TenantSaveDTO): Promise<TenantCreateResultDTO> {

@@ -6,8 +6,12 @@ const BASE_URL = '/api'
 
 function handleResponse<T>(res: Response): Promise<T> {
   const store = useUserStore()
+  if (res.status == 401) {
+    store.logout()
+    router.push('/login')
+  }
 
-  return res.text().then(raw => {
+  return res.text().then((raw) => {
     let json: RestResponse<T> | null = null
 
     // 尝试解析后端 JSON（非 JSON 会抛出）
@@ -32,6 +36,10 @@ function handleResponse<T>(res: Response): Promise<T> {
 
     // HTTP 层错误但无有效业务 JSON
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        store.logout()
+        router.push('/login')
+      }
       throw new Error(json?.message || `HTTP 错误(${res.status})`)
     }
 
@@ -39,7 +47,6 @@ function handleResponse<T>(res: Response): Promise<T> {
     return json?.data as T
   })
 }
-
 
 function createRequestOptions(method: string, body?: any): RequestInit {
   const store = useUserStore()
@@ -75,14 +82,14 @@ const http = {
       const searchParams = new URLSearchParams()
       const params = options.params
 
-      Object.keys(params).forEach(key => {
+      Object.keys(params).forEach((key) => {
         const value = params[key]
 
         if (value === null || value === undefined || value === '') return
 
         // 数组 => foo=1&foo=2
         if (Array.isArray(value)) {
-          value.forEach(v => searchParams.append(key, String(v)))
+          value.forEach((v) => searchParams.append(key, String(v)))
           return
         }
 
