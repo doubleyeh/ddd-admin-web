@@ -19,7 +19,7 @@ export interface MenuDTO {
   children: MenuDTO[] | null
 }
 
-interface MenuOption {
+export interface MenuOption {
   label: () => VNodeChild
   key: string
   path: string | null
@@ -38,13 +38,14 @@ export const renderLabel = (label: string) => {
 }
 
 const mapMenusToOptions = (menus: MenuDTO[]): MenuOption[] => {
-  return menus.map(menu => {
+  return menus.map((menu) => {
     const option: MenuOption = {
       label: renderLabel(menu.name),
       key: menu.name,
       path: menu.path,
       icon: menu.icon ? renderIcon(menu.icon) : undefined,
-      children: menu.children && menu.children.length > 0 ? mapMenusToOptions(menu.children) : undefined
+      children:
+        menu.children && menu.children.length > 0 ? mapMenusToOptions(menu.children) : undefined,
     }
     return option
   })
@@ -52,7 +53,7 @@ const mapMenusToOptions = (menus: MenuDTO[]): MenuOption[] => {
 
 const mapMenusToRoutes = (menus: MenuDTO[]): RouteRecordRaw[] => {
   const routes: RouteRecordRaw[] = []
-  menus.forEach(menu => {
+  menus.forEach((menu) => {
     if (menu.component && menu.path && menu.component !== 'Layout') {
       let routePath = menu.path.startsWith('/') ? menu.path : `/${menu.path}`
       routePath = routePath.replace(/\/+/g, '/')
@@ -65,7 +66,7 @@ const mapMenusToRoutes = (menus: MenuDTO[]): RouteRecordRaw[] => {
           path: routePath,
           name: menu.name,
           component: component,
-          meta: { requiresAuth: true, title: menu.name, icon: menu.icon }
+          meta: { requiresAuth: true, title: menu.name, icon: menu.icon },
         })
       }
     }
@@ -80,7 +81,7 @@ export const useMenuStore = defineStore('menu', {
   state: () => ({
     menuOptions: [] as MenuOption[],
     dynamicRoutes: [] as RouteRecordRaw[],
-    isRoutesAdded: false
+    isRoutesAdded: false,
   }),
   actions: {
     setMenus(menus: MenuDTO[]) {
@@ -90,7 +91,10 @@ export const useMenuStore = defineStore('menu', {
     setRoutesAdded() {
       this.isRoutesAdded = true
     },
+    resetRoutesAdded() {
+      this.isRoutesAdded = false
+    },
     renderLabel,
-    renderIcon
-  }
+    renderIcon,
+  },
 })

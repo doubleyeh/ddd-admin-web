@@ -26,7 +26,7 @@ function handleResponse<T>(res: Response): Promise<T> {
       const msg = json.message || '请求失败'
 
       // 登录失效（由后端定义 code）
-      if (json.code === 401 || json.code === 403) {
+      if (json.code === 401) {
         store.logout()
         router.push('/login')
       }
@@ -36,11 +36,14 @@ function handleResponse<T>(res: Response): Promise<T> {
 
     // HTTP 层错误但无有效业务 JSON
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 403) {
+        throw new Error(json?.message || `您没有权限执行操作)`)
+      } else if (res.status === 401) {
         store.logout()
         router.push('/login')
+      } else {
+        throw new Error(json?.message || `HTTP 错误(${res.status})`)
       }
-      throw new Error(json?.message || `HTTP 错误(${res.status})`)
     }
 
     // 返回业务数据
