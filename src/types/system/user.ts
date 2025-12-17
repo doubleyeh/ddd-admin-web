@@ -4,6 +4,8 @@ export interface UserDTO {
   nickname: string
   state: 0 | 1
   createTime: string
+  tenantId: string
+  tenantName: string
 }
 
 export interface UserPostDTO {
@@ -12,6 +14,7 @@ export interface UserPostDTO {
   nickname: string
   state: 0 | 1
   password: string
+  tenantId: string
 }
 
 export interface UserPutDTO {
@@ -20,6 +23,7 @@ export interface UserPutDTO {
   nickname?: string
   state?: 0 | 1
   password?: string
+  tenantId: string
 }
 
 export interface UserQuery {

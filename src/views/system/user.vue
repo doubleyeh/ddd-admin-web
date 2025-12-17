@@ -67,6 +67,14 @@
         label-placement="top"
         class="mt-4"
       >
+        <n-form-item v-if="isSuperTenant && !isEdit" label="所属租户" path="tenantId">
+          <n-select
+            v-model:value="formModel.tenantId"
+            :options="allTenantOptions"
+            placeholder="请选择所属租户"
+            filterable
+          />
+        </n-form-item>
         <n-form-item label="用户名" path="username">
           <n-input v-model:value="formModel.username" :disabled="isEdit" />
         </n-form-item>
@@ -140,6 +148,7 @@
     nickname: '',
     state: 1,
     password: '',
+    tenantId: userStore.tenantId,
   }
   const formModel = ref<UserPostDTO | UserPutDTO>({ ...initialForm })
 
@@ -152,6 +161,18 @@
   })
 
   const formRules = {
+    tenantId: [
+      {
+        required: true,
+        validator: (value: string) => {
+          if (isSuperTenant && !isEdit.value && !value) {
+            return new Error('请选择所属租户')
+          }
+          return true
+        },
+        trigger: ['blur', 'change'],
+      },
+    ],
     username: [
       { required: true, message: '请输入用户名', trigger: 'blur' },
       { min: 4, max: 50, message: '用户名长度需在4到50个字符之间', trigger: 'blur' },
@@ -176,6 +197,7 @@
           return h('span', rowNum)
         },
       },
+      ...(isSuperTenant ? [{ title: '所属租户', key: 'tenantName' }] : []),
       { title: '用户名', key: 'username' },
       { title: '昵称', key: 'nickname' },
       {
