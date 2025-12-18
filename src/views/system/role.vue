@@ -61,6 +61,7 @@
             :options="allTenantOptions"
             placeholder="请选择所属租户"
             filterable
+            :disabled="isEdit"
           />
         </n-form-item>
         <n-form-item label="角色名称" path="name">
@@ -110,7 +111,6 @@
     NButton,
     NSpace,
     NPopconfirm,
-    NTag,
     useMessage,
     type DataTableColumns,
     type FormInst,
@@ -322,9 +322,13 @@
   }
 
   async function handleDelete(id: string) {
-    await roleApi.deleteById(id)
-    message.success('删除成功')
-    loadData()
+    try {
+      await roleApi.deleteById(id)
+      message.success('删除成功')
+      loadData()
+    } catch (error: any) {
+      message.error(error.message || '删除失败')
+    }
   }
 
   onMounted(() => {

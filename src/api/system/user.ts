@@ -15,6 +15,10 @@ export function findPage(
   return http.get('/users', { params })
 }
 
+export function getById(id: string): Promise<UserDTO> {
+  return http.get(`/users/${id}`)
+}
+
 export function create(data: UserPostDTO): Promise<UserDTO> {
   return http.post('/users', data)
 }

@@ -1,3 +1,5 @@
+import type { RoleOptionsDTO } from './role'
+
 export interface UserDTO {
   id: string
   username: string
@@ -6,6 +8,7 @@ export interface UserDTO {
   createTime: string
   tenantId: string
   tenantName: string
+  roles: RoleOptionsDTO[]
 }
 
 export interface UserPostDTO {
@@ -15,6 +18,7 @@ export interface UserPostDTO {
   state: 0 | 1
   password: string
   tenantId: string
+  roleIds: string[]
 }
 
 export interface UserPutDTO {
@@ -24,6 +28,7 @@ export interface UserPutDTO {
   state?: 0 | 1
   password?: string
   tenantId: string
+  roleIds: string[]
 }
 
 export interface UserQuery {
@@ -31,4 +36,5 @@ export interface UserQuery {
   nickname: string
   state: 0 | 1 | null
   tenantId: string | null
+  roleId: string | null
 }

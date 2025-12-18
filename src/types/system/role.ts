@@ -7,6 +7,8 @@ export interface RoleDTO {
   enabled: boolean
   permissions: any[]
   menus: any[]
+  tenantId: string
+  tenantName: string
 }
 
 export interface RoleSaveDTO {
@@ -18,9 +20,16 @@ export interface RoleSaveDTO {
   enabled?: boolean
   permissionIds: string[]
   menuIds: string[]
+  tenantId: string
+}
+
+export interface RoleOptionsDTO {
+  id: string
+  name: string
 }
 
 export interface RoleQuery {
   name?: string
   code?: string
+  tenantId?: string
 }

@@ -22,6 +22,15 @@
             clearable
           />
         </div>
+        <div v-if="!isSuperTenant" class="w-32">
+          <n-select
+            v-model:value="query.roleId"
+            :options="roleOptions"
+            placeholder="选择角色"
+            clearable
+            filterable
+          />
+        </div>
       </n-space>
 
       <n-space class="ml-4">
@@ -73,6 +82,7 @@
             :options="allTenantOptions"
             placeholder="请选择所属租户"
             filterable
+            :disabled="isEdit"
           />
         </n-form-item>
         <n-form-item label="用户名" path="username">
@@ -86,6 +96,17 @@
         </n-form-item>
         <n-form-item v-if="!isEdit" label="密码" path="password">
           <n-input type="password" v-model:value="formModel.password" />
+        </n-form-item>
+        <n-form-item label="角色" path="roleIds">
+          <n-select
+            v-model:value="formModel.roleIds"
+            multiple
+            :options="roleOptions"
+            :loading="loadingRoles"
+            :disabled="!formModel.tenantId"
+            placeholder="请选择角色（请先选择租户）"
+            filterable
+          />
         </n-form-item>
       </n-form>
     </n-modal>
@@ -112,9 +133,11 @@
   } from 'naive-ui'
   import * as UserApi from '@/api/system/user'
   import { getOptions } from '@/api/system/tenant'
+  import { getRoleOptions } from '@/api/system/role'
   import type { UserDTO, UserPostDTO, UserPutDTO, UserQuery } from '@/types/system/user'
   import { useUserStore } from '@/store/user'
   import dayjs from 'dayjs'
+  import type { RoleOptionsDTO } from '@/types/system/role'
 
   const userStore = useUserStore()
   const message = useMessage()
@@ -136,6 +159,7 @@
     nickname: '',
     state: null,
     tenantId: null,
+    roleId: null,
   })
 
   const stateOptions = [
@@ -143,12 +167,16 @@
     { label: '禁用', value: 0 },
   ]
 
+  const roleOptions = ref<{ label: string; value: string }[]>([])
+  const loadingRoles = ref(false)
+
   const initialForm: UserPostDTO = {
     username: '',
     nickname: '',
     state: 1,
     password: '',
     tenantId: userStore.tenantId,
+    roleIds: [],
   }
   const formModel = ref<UserPostDTO | UserPutDTO>({ ...initialForm })
 
@@ -166,12 +194,22 @@
       { min: 4, max: 50, message: '用户名长度需在4到50个字符之间', trigger: 'blur' },
     ],
     nickname: [{ max: 50, message: '昵称长度不能超过50个字符', trigger: 'blur' }],
-    state: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
+    state: [{ required: true, type: 'number', message: '请选择用户状态', trigger: 'change' }],
     password: [
       { required: true, message: '请输入密码', trigger: ['input', 'blur'] },
       { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' },
     ],
   }
+
+  watch(
+    () => formModel.value.tenantId,
+    (newTenantId) => {
+      if (!isEdit.value) {
+        formModel.value.roleIds = []
+      }
+      fetchRoleOptions(newTenantId as string)
+    }
+  )
 
   const createColumns = (): DataTableColumns<UserDTO> => {
     return [
@@ -286,6 +324,23 @@
 
   const columns = createColumns()
 
+  async function fetchRoleOptions(tenantId: string) {
+    if (!tenantId) {
+      roleOptions.value = []
+      return
+    }
+    loadingRoles.value = true
+    try {
+      const data = await getRoleOptions({ tenantId })
+      roleOptions.value = data.map((item: RoleOptionsDTO) => ({
+        label: item.name,
+        value: item.id,
+      }))
+    } finally {
+      loadingRoles.value = false
+    }
+  }
+
   async function handleUpdateState(id: string, state: 0 | 1) {
     const index = tableData.value.findIndex((item: UserDTO) => item.id === id)
     const row = tableData.value[index]
@@ -356,15 +411,35 @@
 
   function handleCreate() {
     isEdit.value = false
-    formModel.value = { ...initialForm }
+    formModel.value = { ...initialForm, roleIds: [] }
+    roleOptions.value = []
+    if (userStore.tenantId) {
+      fetchRoleOptions(userStore.tenantId)
+    }
     showModal.value = true
   }
 
-  function handleEdit(row: UserDTO) {
+  async function handleEdit(row: UserDTO) {
     isEdit.value = true
-    const { id, username, nickname, state } = row
-    formModel.value = { id, username, nickname, state, password: '', tenantId: '' }
-    showModal.value = true
+    try {
+      const fullUserInfo = await UserApi.getById(row.id)
+      const { id, username, nickname, state, tenantId, roles } = fullUserInfo
+
+      await fetchRoleOptions(tenantId)
+
+      formModel.value = {
+        id,
+        username,
+        nickname,
+        state,
+        tenantId,
+        password: '',
+        roleIds: roles ? roles.map((r) => r.id) : [],
+      }
+      showModal.value = true
+    } catch (error: any) {
+      message.error('获取用户信息失败')
+    }
   }
 
   async function handleSave() {
@@ -417,6 +492,8 @@
   onMounted(() => {
     if (isSuperTenant) {
       fetchTenantOptions()
+    } else {
+      fetchRoleOptions(userStore.tenantId)
     }
     fetchTableData()
   })
