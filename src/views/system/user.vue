@@ -161,18 +161,6 @@
   })
 
   const formRules = {
-    tenantId: [
-      {
-        required: true,
-        validator: (value: string) => {
-          if (isSuperTenant && !isEdit.value && !value) {
-            return new Error('请选择所属租户')
-          }
-          return true
-        },
-        trigger: ['blur', 'change'],
-      },
-    ],
     username: [
       { required: true, message: '请输入用户名', trigger: 'blur' },
       { min: 4, max: 50, message: '用户名长度需在4到50个字符之间', trigger: 'blur' },
@@ -375,12 +363,16 @@
   function handleEdit(row: UserDTO) {
     isEdit.value = true
     const { id, username, nickname, state } = row
-    formModel.value = { id, username, nickname, state, password: '' }
+    formModel.value = { id, username, nickname, state, password: '', tenantId: '' }
     showModal.value = true
   }
 
   async function handleSave() {
     await formRef.value?.validate()
+    if (isSuperTenant && !isEdit.value && !formModel.value.tenantId) {
+      message.error('请选择所属租户')
+      return false
+    }
 
     const data: UserPostDTO | UserPutDTO = { ...formModel.value }
     let res: UserDTO | undefined

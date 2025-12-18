@@ -27,6 +27,10 @@ export function update(id: string, data: RoleSaveDTO): Promise<RoleDTO> {
   return http.put(`/roles/${id}`, data)
 }
 
+export function updateState(id: string, state: boolean): Promise<RoleDTO> {
+  return http.put(`/roles/${id}/state?state=${state}`, {})
+}
+
 export function deleteById(id: string): Promise<void> {
   return http.delete(`/roles/${id}`)
 }
