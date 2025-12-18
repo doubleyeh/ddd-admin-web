@@ -395,6 +395,7 @@
     query.nickname = ''
     query.state = null
     query.tenantId = null
+    query.roleId = null
     handleSearch()
   }
 
