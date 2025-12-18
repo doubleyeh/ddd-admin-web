@@ -4,12 +4,18 @@ import type { RestResponse } from '@/types/api'
 
 const BASE_URL = '/api'
 
-function handleResponse<T>(res: Response): Promise<T> {
+async function handleResponse<T>(res: Response): Promise<T> {
   const store = useUserStore()
-  if (res.status == 401) {
+
+  const toLogin = () => {
+    if (router.currentRoute.value.path === '/login') return
     store.logout()
-    router.push('/login')
+    router.push({
+      path: '/login',
+      query: { redirect: router.currentRoute.value.fullPath },
+    })
   }
+  if (res.status == 401) toLogin()
 
   return res.text().then((raw) => {
     let json: RestResponse<T> | null = null
@@ -24,13 +30,6 @@ function handleResponse<T>(res: Response): Promise<T> {
     // 业务错误（后端 state=false 或 code!=200）
     if (json && (json.state === false || json.code !== 200)) {
       const msg = json.message || '请求失败'
-
-      // 登录失效（由后端定义 code）
-      if (json.code === 401) {
-        store.logout()
-        router.push('/login')
-      }
-
       throw new Error(msg)
     }
 
@@ -39,8 +38,7 @@ function handleResponse<T>(res: Response): Promise<T> {
       if (res.status === 403) {
         throw new Error(json?.message || `您没有权限执行操作)`)
       } else if (res.status === 401) {
-        store.logout()
-        router.push('/login')
+        toLogin()
       } else {
         throw new Error(json?.message || `HTTP 错误(${res.status})`)
       }

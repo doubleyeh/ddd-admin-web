@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import { useUserStore } from '../store/user'
   import { http } from '@/utils/http'
   import { NInput, NButton, useMessage } from 'naive-ui'
@@ -31,6 +31,7 @@
   const tenantId = ref('000000')
   const loading = ref(false)
 
+  const route = useRoute()
   const router = useRouter()
   const store = useUserStore()
   const menuStore = useMenuStore()
@@ -59,7 +60,8 @@
         menuStore.resetRoutesAdded()
         store.login(res)
         message.success('登录成功！')
-        router.push('/')
+        const backAddr = (route.query.redirect as string) || '/'
+        router.push(backAddr)
       }
     } catch (error: any) {
       message.error(error.message || '登录失败，请检查信息')

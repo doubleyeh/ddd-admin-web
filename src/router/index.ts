@@ -16,39 +16,39 @@ const fixedRoutes: RouteRecordRaw[] = [
         path: '',
         name: 'Home',
         component: () => import('@/views/home.vue'),
-        meta: { requiresAuth: true, title: '首页', icon: '🏠' }
+        meta: { requiresAuth: true, title: '首页', icon: '🏠' },
       },
       {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile.vue'),
-        meta: { requiresAuth: true, title: '个人信息' }
+        meta: { requiresAuth: true, title: '个人信息' },
       },
       {
         path: 'change-password',
         name: 'ChangePassword',
         component: () => import('@/views/changePassword.vue'),
-        meta: { requiresAuth: true, title: '修改密码' }
+        meta: { requiresAuth: true, title: '修改密码' },
       },
       {
         path: ':pathMatch(.*)*',
         name: 'NotFound',
         component: () => import('@/views/404.vue'),
-        meta: { requiresAuth: false, title: '404' }
-      }
-    ]
+        meta: { requiresAuth: false, title: '404' },
+      },
+    ],
   },
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login.vue'),
-    meta: { requiresAuth: false, title: '登录' }
-  }
+    meta: { requiresAuth: false, title: '登录' },
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: fixedRoutes
+  routes: fixedRoutes,
 })
 
 router.beforeEach(async (to, from, next) => {
@@ -67,7 +67,10 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     userStore.logout()
-    next({ name: 'Login' })
+    next({
+      name: 'Login',
+      query: { redirect: to.fullPath },
+    })
     return
   }
 
