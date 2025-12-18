@@ -111,6 +111,7 @@
     NButton,
     NSpace,
     NPopconfirm,
+    NSwitch,
     useMessage,
     type DataTableColumns,
     type FormInst,
