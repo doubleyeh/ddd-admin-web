@@ -1,4 +1,5 @@
 import type { LoginResDTO, UserInfoDTO } from '@/types/auth'
+import { http } from '@/utils/http'
 import { defineStore } from 'pinia'
 
 export const useUserStore = defineStore('user', {
@@ -41,6 +42,7 @@ export const useUserStore = defineStore('user', {
     },
 
     logout() {
+      http.post<void>('/auth/logout', {})
       this.token = ''
       this.username = ''
       this.tenantId = ''

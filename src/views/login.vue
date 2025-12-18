@@ -1,6 +1,6 @@
 <template>
   <div
-    class="h-screen flex items-center justify-center bg-gradient-to-br from-sky-200 to-blue-400 dark:from-slate-800 dark:to-slate-950"
+    class="h-screen flex items-center justify-center bg-linear-to-br from-sky-200 to-blue-400 dark:from-slate-800 dark:to-slate-950"
   >
     <div
       class="p-8 rounded-2xl bg-white dark:bg-slate-800 shadow-lg w-[360px]"
