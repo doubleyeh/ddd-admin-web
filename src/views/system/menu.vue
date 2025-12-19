@@ -2,7 +2,7 @@
   <n-card :bordered="false" class="h-full">
     <div class="flex items-center mb-4">
       <n-space class="ml-auto">
-        <n-button v-if="userStore.isSuperAdmin" type="success" @click="handleCreate(null)">
+        <n-button v-if="userStore.isSuperAdmin" type="success" @click="handleCreate(undefined)">
           新增根菜单
         </n-button>
       </n-space>
@@ -14,6 +14,7 @@
       :loading="loading"
       :row-key="(row: MenuDTO) => row.id"
       default-expand-all
+      :scroll-x="1100"
     />
 
     <n-modal
@@ -62,9 +63,18 @@
       preset="card"
       style="width: 800px"
     >
-      <div class="mb-4">
-        <n-button type="primary" size="small" @click="handleAddPerm">新增权限项</n-button>
-      </div>
+      <n-space class="mb-4">
+        <n-button type="primary" size="small" @click="handleAddPerm">单个新增</n-button>
+        <n-input-group>
+          <n-input
+            v-model:value="permForm.code"
+            size="small"
+            placeholder="编码前缀"
+            style="width: 150px"
+          />
+          <n-button type="warning" size="small" @click="handleQuickGenPerm">快速生成CRUD</n-button>
+        </n-input-group>
+      </n-space>
       <n-data-table
         :columns="permColumns"
         :data="permTableData"
@@ -77,19 +87,6 @@
       <n-form :model="permForm" label-placement="left" label-width="70">
         <n-form-item label="名称"><n-input v-model:value="permForm.name" /></n-form-item>
         <n-form-item label="编码"><n-input v-model:value="permForm.code" /></n-form-item>
-        <n-form-item label="路径"><n-input v-model:value="permForm.url" /></n-form-item>
-        <n-form-item label="方法">
-          <n-select
-            v-model:value="permForm.method"
-            :options="[
-              { label: 'ALL', value: '*' },
-              { label: 'GET', value: 'GET' },
-              { label: 'POST', value: 'POST' },
-              { label: 'PUT', value: 'PUT' },
-              { label: 'DELETE', value: 'DELETE' },
-            ]"
-          />
-        </n-form-item>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -116,35 +113,61 @@
   const isEdit = ref(false)
   const tableData = ref<MenuDTO[]>([])
   const treeOptions = ref<MenuDTO[]>([])
-
   const showPermModal = ref(false)
   const showPermEditModal = ref(false)
   const permLoading = ref(false)
   const permTableData = ref<PermissionDTO[]>([])
   const currentMenu = ref<MenuDTO | null>(null)
-  const permForm = reactive({ id: null, menuId: '', name: '', code: '', url: '', method: '*' })
 
-  const formModel = reactive({ id: null, parentId: null, name: '', path: '', component: '' })
+  const permForm = reactive({
+    id: undefined as string | undefined,
+    menuId: '',
+    name: '',
+    code: '',
+    url: '',
+    method: '*',
+  })
+  const formModel = reactive({
+    id: undefined as string | undefined,
+    parentId: undefined as string | undefined,
+    name: '',
+    path: '',
+    component: '',
+  })
   const rules = { name: { required: true }, path: { required: true } }
 
   const columns: DataTableColumns<MenuDTO> = [
-    { title: '菜单名称', key: 'name' },
-    { title: '路由路径', key: 'path' },
+    { title: '菜单名称', key: 'name', minWidth: 250 },
+    { title: '路由路径', key: 'path', minWidth: 150, ellipsis: { tooltip: true } },
     {
       title: '操作',
       key: 'actions',
-      render: (row) =>
-        h(NSpace, null, {
+      width: 280,
+      fixed: 'right',
+      render: (row) => {
+        const isDir = !row.component || row.component === 'Layout'
+        return h(NSpace, null, {
           default: () => [
             h(
               NButton,
               {
                 size: 'small',
                 quaternary: true,
+                type: 'success',
+                onClick: () => handleCreate(row.id),
+              },
+              { default: () => '新增下级' }
+            ),
+            h(
+              NButton,
+              {
+                size: 'small',
+                quaternary: true,
                 type: 'info',
+                disabled: isDir,
                 onClick: () => handleManagePerm(row),
               },
-              { default: () => '权限管理' }
+              { default: () => '权限' }
             ),
             h(
               NButton,
@@ -165,16 +188,17 @@
               }
             ),
           ],
-        }),
+        })
+      },
     },
   ]
 
-  const permColumns = [
+  const permColumns: DataTableColumns<any> = [
     { title: '名称', key: 'name' },
     { title: '编码', key: 'code' },
-    { title: '方法', key: 'method' },
     {
       title: '操作',
+      key: 'actions',
       render: (row: any) =>
         h(NSpace, null, {
           default: () => [
@@ -218,9 +242,35 @@
     permLoading.value = false
   }
 
+  async function handleQuickGenPerm() {
+    const prefix = permForm.code.trim()
+    if (!prefix || !currentMenu.value) return
+    const crud = [
+      { n: '查询', s: 'list' },
+      { n: '新增', s: 'create' },
+      { n: '修改', s: 'update' },
+      { n: '删除', s: 'delete' },
+    ]
+    permLoading.value = true
+    try {
+      for (const t of crud) {
+        await permApi.save({
+          menuId: currentMenu.value.id,
+          name: `${currentMenu.value.name}${t.n}`,
+          code: `${prefix}:${t.s}`,
+          url: '',
+          method: '*',
+        })
+      }
+      permTableData.value = await permApi.findByMenuId(currentMenu.value.id)
+    } finally {
+      permLoading.value = false
+    }
+  }
+
   function handleAddPerm() {
     Object.assign(permForm, {
-      id: null,
+      id: undefined,
       menuId: currentMenu.value?.id,
       name: '',
       code: '',
@@ -241,9 +291,9 @@
     handleManagePerm(currentMenu.value!)
   }
 
-  function handleCreate(parentId: string | null) {
+  function handleCreate(parentId: string | undefined) {
     isEdit.value = false
-    Object.assign(formModel, { id: null, parentId, name: '', path: '', component: '' })
+    Object.assign(formModel, { id: undefined, parentId, name: '', path: '', component: '' })
     showModal.value = true
   }
 
@@ -256,13 +306,13 @@
   async function handleSave() {
     isEdit.value
       ? await menuApi.updateMenu(formModel.id!, formModel)
-      : await menuApi.createMenu(formModel)
+      : await menuApi.createMenu(formModel as any)
     showModal.value = false
     loadData()
   }
 
   async function handleDelete(id: string) {
-    await menuApi.deleteMenu(id.toString())
+    await menuApi.deleteMenu(id)
     loadData()
   }
 
