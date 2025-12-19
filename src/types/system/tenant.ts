@@ -7,7 +7,7 @@ export interface TenantDTO {
   enabled: boolean
 }
 
-export interface TenantOptionsDTO {
+export interface TenantOptionDTO {
   id: string
   tenantId: string
   name: string

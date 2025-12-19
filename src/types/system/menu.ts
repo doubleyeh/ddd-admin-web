@@ -1,3 +1,5 @@
+import type { PermissionOptionDTO } from './permission'
+
 export interface MenuDTO {
   id: string
   parentId: string | null
@@ -21,4 +23,14 @@ export interface MenuSaveDTO {
   sort: number
   isHidden: boolean
   permissionIds: string[]
+}
+
+export interface MenuOptionDTO {
+  id: string
+  parentId: string | null
+  name: string
+  path: string
+  children?: MenuOptionDTO[]
+  permissions?: PermissionOptionDTO[]
+  isPermission: boolean
 }

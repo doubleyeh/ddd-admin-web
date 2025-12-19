@@ -15,7 +15,6 @@
         <n-input v-model:value="queryModel.name" placeholder="角色名称" clearable class="w-40" />
         <n-input v-model:value="queryModel.code" placeholder="角色编码" clearable class="w-40" />
       </n-space>
-
       <n-space class="ml-4">
         <n-button type="primary" @click="handleSearch">查询</n-button>
         <n-button @click="handleReset">重置</n-button>
@@ -83,22 +82,35 @@
         <n-form-item label="描述" path="description">
           <n-input v-model:value="formModel.description" type="textarea" />
         </n-form-item>
-        <n-form-item label="菜单权限">
-          <n-tree
-            block-line
-            checkable
-            expand-on-click
-            :data="menuOptions"
-            :checked-keys="formModel.menuIds"
-            @update:checked-keys="(keys: any) => (formModel.menuIds = keys)"
-            style="max-height: 250px; overflow: auto"
-          />
-        </n-form-item>
       </n-form>
       <template #footer>
         <n-space justify="end">
           <n-button @click="showModal = false">取消</n-button>
           <n-button type="primary" @click="handleSave">确认</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="showGrantModal" title="角色授权" preset="card" style="width: 500px">
+      <n-scrollbar style="max-height: 500px" trigger="none">
+        <n-tree
+          block-line
+          checkable
+          expand-on-click
+          :cascade="false"
+          label-field="name"
+          key-field="id"
+          :data="menuOptions"
+          v-model:checked-keys="grantForm.menuIds"
+          v-model:expanded-keys="defaultExpandedKeys"
+          @update:checked-keys="handleCheckUpdate"
+          :node-props="nodeProps"
+        />
+      </n-scrollbar>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showGrantModal = false">取消</n-button>
+          <n-button type="primary" @click="handleGrantSave">确认授权</n-button>
         </n-space>
       </template>
     </n-modal>
@@ -118,22 +130,23 @@
   } from 'naive-ui'
   import { pinyin } from 'pinyin-pro'
   import * as roleApi from '@/api/system/role'
+  import * as menuApi from '@/api/system/menu'
   import { getOptions } from '@/api/system/tenant'
   import type { RoleDTO, RoleSaveDTO } from '@/types/system/role'
+  import type { MenuOptionDTO } from '@/types/system/menu'
   import { useUserStore } from '@/store/user'
 
   const userStore = useUserStore()
   const message = useMessage()
   const isSuperTenant = computed(() => userStore.isSuperTenant)
-
   const loading = ref(false)
   const showModal = ref(false)
+  const showGrantModal = ref(false)
   const isEdit = ref(false)
   const formRef = ref<FormInst | null>(null)
   const tableData = ref<RoleDTO[]>([])
-  const menuOptions = ref([])
+  const menuOptions = ref<MenuOptionDTO[]>([])
   const allTenantOptions = ref<{ label: string; value: string }[]>([])
-
   const queryModel = reactive({ name: '', code: '', tenantId: null })
   const pagination = reactive({
     page: 1,
@@ -143,16 +156,16 @@
     pageSizes: [10, 20, 30],
   })
 
-  const formModel = ref<RoleSaveDTO & { tenantId?: string }>({
+  const formModel = ref<RoleSaveDTO>({
     name: '',
     code: '',
     description: '',
     sort: 1,
     enabled: true,
-    permissionIds: [],
-    menuIds: [],
     tenantId: userStore.tenantId,
   })
+
+  const grantForm = reactive({ roleId: '', menuIds: [] as string[] })
 
   const rules = {
     name: { required: true, message: '请输入角色名称', trigger: 'blur' },
@@ -171,17 +184,14 @@
     ...(isSuperTenant ? [{ title: '所属租户', key: 'tenantName' }] : []),
     { title: '角色名称', key: 'name' },
     { title: '角色编码', key: 'code' },
-    { title: '排序', key: 'sort' },
     {
       title: '状态',
       key: 'enabled',
-      render(row: RoleDTO) {
+      render(row) {
         return h(NSwitch, {
           value: row.enabled,
           disabled: !userStore.hasPermission('role:update'),
-          'onUpdate:value': (value: boolean) => {
-            handleUpdateState(row.id, value)
-          },
+          'onUpdate:value': (v) => handleUpdateState(row.id, v),
         })
       },
     },
@@ -193,25 +203,30 @@
           NSpace,
           {},
           {
-            default: () =>
-              [
-                userStore.hasPermission('role:update') &&
-                  h(
-                    NButton,
-                    { size: 'small', onClick: () => handleEdit(row) },
-                    { default: () => '编辑' }
-                  ),
-                userStore.hasPermission('role:delete') &&
-                  h(
-                    NPopconfirm,
-                    { onPositiveClick: () => handleDelete(row.id) },
-                    {
-                      trigger: () =>
-                        h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
-                      default: () => '确认删除该角色吗？',
-                    }
-                  ),
-              ].filter(Boolean),
+            default: () => [
+              userStore.hasPermission('role:update') &&
+                h(
+                  NButton,
+                  { size: 'small', onClick: () => handleEdit(row) },
+                  { default: () => '编辑' }
+                ),
+              userStore.hasPermission('role:update') &&
+                h(
+                  NButton,
+                  { size: 'small', type: 'info', onClick: () => handleOpenGrant(row) },
+                  { default: () => '授权' }
+                ),
+              userStore.hasPermission('role:delete') &&
+                h(
+                  NPopconfirm,
+                  { onPositiveClick: () => handleDelete(row.id) },
+                  {
+                    trigger: () =>
+                      h(NButton, { size: 'small', type: 'error' }, { default: () => '删除' }),
+                    default: () => '确认删除吗？',
+                  }
+                ),
+            ],
           }
         ),
     },
@@ -223,11 +238,6 @@
       .join('_')
       .toUpperCase()
       .replace(/[^A-Z0-9_]/g, '')
-  }
-
-  async function fetchTenantOptions() {
-    const list = await getOptions('')
-    allTenantOptions.value = list.map((t) => ({ label: t.name, value: t.tenantId }))
   }
 
   async function loadData() {
@@ -251,12 +261,12 @@
     queryModel.tenantId = null
     handleSearch()
   }
-  function handlePageChange(page: number) {
-    pagination.page = page
+  function handlePageChange(p: number) {
+    pagination.page = p
     loadData()
   }
-  function handlePageSizeChange(size: number) {
-    pagination.pageSize = size
+  function handlePageSizeChange(s: number) {
+    pagination.pageSize = s
     pagination.page = 1
     loadData()
   }
@@ -269,8 +279,6 @@
       description: '',
       sort: 1,
       enabled: true,
-      permissionIds: [],
-      menuIds: [],
       tenantId: userStore.tenantId,
     }
     showModal.value = true
@@ -286,28 +294,9 @@
       description: detail.description,
       sort: detail.sort,
       enabled: detail.enabled,
-      menuIds: detail.menus?.map((m: any) => m.id) || [],
-      permissionIds: detail.permissions?.map((p: any) => p.id) || [],
+      tenantId: row.tenantId,
     }
     showModal.value = true
-  }
-
-  async function handleUpdateState(id: string, state: boolean) {
-    const index = tableData.value.findIndex((item: RoleDTO) => item.id === id)
-    const row = tableData.value[index]
-    if (row) {
-      row.enabled = state
-    }
-
-    try {
-      await roleApi.updateState(id, state)
-      message.success(`${state ? '启用' : '禁用'}成功`)
-    } catch (error: any) {
-      message.error(error.message || `${state ? '启用' : '禁用'}失败`)
-      if (index > -1 && tableData.value[index]) {
-        tableData.value[index].enabled = state
-      }
-    }
   }
 
   async function handleSave() {
@@ -322,18 +311,185 @@
     loadData()
   }
 
+  async function handleUpdateState(id: string, state: boolean) {
+    await roleApi.updateState(id, state)
+    message.success('更新成功')
+    loadData()
+  }
+
   async function handleDelete(id: string) {
-    try {
-      await roleApi.deleteById(id)
-      message.success('删除成功')
-      loadData()
-    } catch (error: any) {
-      message.error(error.message || '删除失败')
+    await roleApi.deleteById(id)
+    message.success('删除成功')
+    loadData()
+  }
+
+  //--------授权部分---------
+  const defaultExpandedKeys = ref<string[]>([])
+  async function handleOpenGrant(row: RoleDTO) {
+    grantForm.roleId = row.id
+    const [tree, detail] = await Promise.all([
+      menuApi.getMenuTreeOptions(),
+      roleApi.getById(row.id),
+    ])
+
+    const injectParentId = (nodes: any[], pId: string | null) => {
+      nodes.forEach((node) => {
+        node.parentId = pId
+        if (node.children) {
+          injectParentId(node.children, String(node.id))
+        }
+      })
+    }
+    injectParentId(tree, null)
+
+    menuOptions.value = tree
+
+    const selectedIds: string[] = []
+    if (detail.menus) {
+      detail.menus.forEach((m: any) => selectedIds.push(String(m.id)))
+    }
+    if (detail.permissions) {
+      detail.permissions.forEach((p: any) => selectedIds.push(String(p.id)))
+    }
+
+    grantForm.menuIds = selectedIds
+
+    const allIds: string[] = []
+    const collectIds = (list: any[]) => {
+      list.forEach((item) => {
+        allIds.push(String(item.id))
+        if (item.children) collectIds(item.children)
+      })
+    }
+    collectIds(tree)
+    defaultExpandedKeys.value = allIds
+
+    showGrantModal.value = true
+  }
+
+  const nodeProps = ({ option }: { option: any }) => {
+    return {
+      onClick() {
+        if (!option.isPermission) return
+
+        const targetKey = String(option.id)
+        const currentKeys = new Set(grantForm.menuIds.map((v) => String(v)))
+
+        if (currentKeys.has(targetKey)) {
+          const nextKeys = Array.from(currentKeys).filter((k) => k !== targetKey)
+          handleCheckUpdate(nextKeys, [], { action: 'uncheck', node: option })
+        } else {
+          const nextKeys = Array.from(currentKeys)
+          nextKeys.push(targetKey)
+          handleCheckUpdate(nextKeys, [], { action: 'check', node: option })
+        }
+      },
     }
   }
 
+  function handleCheckUpdate(
+    keys: Array<string | number>,
+    _options: any[],
+    meta: { action: 'check' | 'uncheck'; node: any }
+  ) {
+    const newKeys = new Set(keys.map((v) => String(v)))
+    const node = meta.node as any
+    if (!node) return
+
+    if (meta.action === 'check') {
+      const checkParent = (pId: string | null) => {
+        if (!pId || pId === '0' || pId === 'null') return
+        newKeys.add(String(pId))
+        const parentNode = findNodeById(menuOptions.value, String(pId))
+        if (parentNode) {
+          checkParent(parentNode.parentId)
+        }
+      }
+      checkParent(node.parentId)
+
+      if (!node.isPermission && node.children) {
+        const queryBtn = node.children.find(
+          (child: any) =>
+            child.isPermission && (child.name.includes('查询') || child.name.includes('列表'))
+        )
+        if (queryBtn) newKeys.add(String(queryBtn.id))
+      }
+    } else {
+      const uncheckChildren = (children: any[]) => {
+        children.forEach((child) => {
+          newKeys.delete(String(child.id))
+          if (child.children) uncheckChildren(child.children)
+        })
+      }
+      if (node.children) uncheckChildren(node.children)
+
+      const uncheckParentIfEmpty = (pId: string | null) => {
+        if (!pId || pId === '0' || pId === 'null') return
+        const parentNode = findNodeById(menuOptions.value, String(pId))
+        if (!parentNode || !parentNode.children) return
+
+        const hasActiveChild = parentNode.children.some((child: any) =>
+          newKeys.has(String(child.id))
+        )
+        if (!hasActiveChild) {
+          newKeys.delete(String(pId))
+          uncheckParentIfEmpty(parentNode.parentId)
+        }
+      }
+      uncheckParentIfEmpty(node.parentId)
+    }
+
+    grantForm.menuIds = Array.from(newKeys)
+  }
+
+  function findNodeById(nodes: MenuOptionDTO[], id: string): MenuOptionDTO | null {
+    for (const node of nodes) {
+      if (String(node.id) === id) return node
+      if (node.children && node.children.length > 0) {
+        const found = findNodeById(node.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  async function handleGrantSave() {
+    const menuIds: string[] = []
+    const permissionIds: string[] = []
+
+    const allNodes: MenuOptionDTO[] = []
+    const flatten = (nodes: MenuOptionDTO[]) => {
+      nodes.forEach((n) => {
+        allNodes.push(n)
+        if (n.children) flatten(n.children)
+      })
+    }
+    flatten(menuOptions.value)
+
+    grantForm.menuIds.forEach((id) => {
+      const node = allNodes.find((n) => String(n.id) === String(id))
+      if (node) {
+        if (node.isPermission) {
+          permissionIds.push(String(node.id))
+        } else {
+          menuIds.push(String(node.id))
+        }
+      }
+    })
+
+    await roleApi.grant(grantForm.roleId, { menuIds, permissionIds })
+    message.success('操作成功')
+    showGrantModal.value = false
+  }
+
   onMounted(() => {
-    if (isSuperTenant) fetchTenantOptions()
+    if (isSuperTenant)
+      getOptions('').then(
+        (l) => (allTenantOptions.value = l.map((t) => ({ label: t.name, value: t.tenantId })))
+      )
     loadData()
   })
 </script>
+
+<styel scoped>
+</styel>

@@ -18,12 +18,15 @@ export interface RoleSaveDTO {
   description?: string
   sort?: number
   enabled?: boolean
-  permissionIds: string[]
-  menuIds: string[]
   tenantId: string
 }
 
-export interface RoleOptionsDTO {
+export interface RoleGrantDTO {
+  menuIds: string[]
+  permissionIds: string[]
+}
+
+export interface RoleOptionDTO {
   id: string
   name: string
 }

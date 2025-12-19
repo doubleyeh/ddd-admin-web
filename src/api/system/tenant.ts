@@ -3,7 +3,7 @@ import type { Page } from '@/types/api'
 import type {
   TenantCreateResultDTO,
   TenantDTO,
-  TenantOptionsDTO,
+  TenantOptionDTO,
   TenantSaveDTO,
 } from '@/types/system/tenant'
 
@@ -20,7 +20,7 @@ export function findPage(
   return http.get('/tenants', { params })
 }
 
-export function getOptions(name: String = ''): Promise<TenantOptionsDTO[]> {
+export function getOptions(name: String = ''): Promise<TenantOptionDTO[]> {
   const params = {
     name,
   }

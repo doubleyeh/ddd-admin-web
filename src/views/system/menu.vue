@@ -229,17 +229,23 @@
 
   async function loadData() {
     loading.value = true
-    tableData.value = await menuApi.getMenuTree()
-    treeOptions.value = tableData.value
-    loading.value = false
+    try {
+      tableData.value = await menuApi.getMenuTree()
+      treeOptions.value = tableData.value
+    } finally {
+      loading.value = false
+    }
   }
 
   async function handleManagePerm(row: MenuDTO) {
     currentMenu.value = row
     showPermModal.value = true
     permLoading.value = true
-    permTableData.value = await permApi.findByMenuId(row.id)
-    permLoading.value = false
+    try {
+      permTableData.value = await permApi.findByMenuId(row.id)
+    } finally {
+      permLoading.value = false
+    }
   }
 
   async function handleQuickGenPerm() {
@@ -281,14 +287,20 @@
   }
 
   async function handleSavePerm() {
-    await permApi.save(permForm)
-    showPermEditModal.value = false
-    handleManagePerm(currentMenu.value!)
+    try {
+      await permApi.save(permForm)
+      showPermEditModal.value = false
+      handleManagePerm(currentMenu.value!)
+    } finally {
+    }
   }
 
   async function handleDeletePerm(id: string) {
-    await permApi.deleteById(id)
-    handleManagePerm(currentMenu.value!)
+    try {
+      await permApi.deleteById(id)
+      handleManagePerm(currentMenu.value!)
+    } finally {
+    }
   }
 
   function handleCreate(parentId: string | undefined) {
@@ -304,16 +316,22 @@
   }
 
   async function handleSave() {
-    isEdit.value
-      ? await menuApi.updateMenu(formModel.id!, formModel)
-      : await menuApi.createMenu(formModel as any)
-    showModal.value = false
-    loadData()
+    try {
+      isEdit.value
+        ? await menuApi.updateMenu(formModel.id!, formModel)
+        : await menuApi.createMenu(formModel as any)
+      loadData()
+      showModal.value = false
+    } finally {
+    }
   }
 
   async function handleDelete(id: string) {
-    await menuApi.deleteMenu(id)
-    loadData()
+    try {
+      await menuApi.deleteMenu(id)
+      loadData()
+    } finally {
+    }
   }
 
   onMounted(loadData)

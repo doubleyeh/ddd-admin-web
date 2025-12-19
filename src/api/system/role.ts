@@ -1,6 +1,6 @@
 import { http } from '@/utils/http'
 import type { Page } from '@/types/api'
-import type { RoleDTO, RoleOptionsDTO, RoleSaveDTO } from '@/types/system/role'
+import type { RoleDTO, RoleOptionDTO, RoleSaveDTO, RoleGrantDTO } from '@/types/system/role'
 
 export function findPage(
   page: number,
@@ -27,6 +27,10 @@ export function update(id: string, data: RoleSaveDTO): Promise<RoleDTO> {
   return http.put(`/roles/${id}`, data)
 }
 
+export function grant(id: string, data: RoleGrantDTO): Promise<void> {
+  return http.post(`/roles/${id}/grant`, data)
+}
+
 export function updateState(id: string, state: boolean): Promise<RoleDTO> {
   return http.put(`/roles/${id}/state?state=${state}`, {})
 }
@@ -35,7 +39,7 @@ export function deleteById(id: string): Promise<void> {
   return http.delete(`/roles/${id}`)
 }
 
-export function getRoleOptions(query: Record<string, any> = {}): Promise<RoleOptionsDTO[]> {
+export function getRoleOptions(query: Record<string, any> = {}): Promise<RoleOptionDTO[]> {
   const params = {
     ...query,
   }

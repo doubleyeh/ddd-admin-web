@@ -7,3 +7,9 @@ export interface PermissionDTO {
   method: string
   description: string
 }
+
+export interface PermissionOptionDTO {
+  id: string
+  name: string
+  isPermission: boolean
+}

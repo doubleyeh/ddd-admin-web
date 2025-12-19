@@ -1,4 +1,4 @@
-import type { RoleOptionsDTO } from './role'
+import type { RoleOptionDTO } from './role'
 
 export interface UserDTO {
   id: string
@@ -8,7 +8,7 @@ export interface UserDTO {
   createTime: string
   tenantId: string
   tenantName: string
-  roles: RoleOptionsDTO[]
+  roles: RoleOptionDTO[]
 }
 
 export interface UserPostDTO {

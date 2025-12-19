@@ -1,5 +1,5 @@
 import { http } from '@/utils/http'
-import type { MenuDTO } from '@/types/system/menu'
+import type { MenuDTO, MenuOptionDTO } from '@/types/system/menu'
 
 export function getMenuTree() {
   return http.get<MenuDTO[]>('/menus/tree')
@@ -15,4 +15,8 @@ export function updateMenu(id: string, data: Partial<MenuDTO>) {
 
 export function deleteMenu(id: string) {
   return http.delete<void>(`/menus/${id}`)
+}
+
+export function getMenuTreeOptions() {
+  return http.get<MenuOptionDTO[]>('/menus/tree-options')
 }

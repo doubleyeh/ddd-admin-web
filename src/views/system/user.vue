@@ -137,7 +137,7 @@
   import type { UserDTO, UserPostDTO, UserPutDTO, UserQuery } from '@/types/system/user'
   import { useUserStore } from '@/store/user'
   import dayjs from 'dayjs'
-  import type { RoleOptionsDTO } from '@/types/system/role'
+  import type { RoleOptionDTO } from '@/types/system/role'
 
   const userStore = useUserStore()
   const message = useMessage()
@@ -332,7 +332,7 @@
     loadingRoles.value = true
     try {
       const data = await getRoleOptions({ tenantId })
-      roleOptions.value = data.map((item: RoleOptionsDTO) => ({
+      roleOptions.value = data.map((item: RoleOptionDTO) => ({
         label: item.name,
         value: item.id,
       }))
