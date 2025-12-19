@@ -18,6 +18,7 @@ export const useUserStore = defineStore('user', {
         return state.superTenant === '1'
       }
     },
+    isSuperAdmin: (state) => state.permissions.includes('SUPER_ADMIN'),
     hasPermission: (state) => {
       return (perm: string): boolean => {
         return state.permissions.includes(perm)
