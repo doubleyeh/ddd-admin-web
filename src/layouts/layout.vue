@@ -47,7 +47,10 @@
         />
       </n-layout-sider>
 
-      <n-layout-content content-style="padding: 24px; min-height: 100%;" class="bg-gray-50 dark:bg-gray-900">
+      <n-layout-content
+        content-style="padding: 24px; min-height: 100%;"
+        class="bg-gray-50 dark:bg-gray-900"
+      >
         <router-view />
       </n-layout-content>
     </n-layout>
@@ -55,108 +58,121 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/store/user'
-import { useMenuStore, MenuOption } from '@/store/menu'
-import { useThemeStore } from '@/store/theme'
-import { useMessage } from 'naive-ui'
-import { ChevronBackCircleOutline, ChevronForwardCircleOutline } from '@vicons/ionicons5'
+  import { ref, computed, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+  import { useUserStore } from '@/store/user'
+  import { useMenuStore } from '@/store/menu'
+  import type { MenuOption } from '@/store/menu'
+  import { useThemeStore } from '@/store/theme'
+  import { useMessage } from 'naive-ui'
+  import { ChevronBackCircleOutline, ChevronForwardCircleOutline } from '@vicons/ionicons5'
 
-const router = useRouter()
-const route = useRoute()
-const user = useUserStore()
-const menuStore = useMenuStore()
-const themeStore = useThemeStore()
-const message = useMessage()
+  const router = useRouter()
+  const route = useRoute()
+  const user = useUserStore()
+  const menuStore = useMenuStore()
+  const themeStore = useThemeStore()
+  const message = useMessage()
 
-const collapsed = ref(false)
+  const collapsed = ref(false)
 
-const userMenuOptions = [
-  { label: '个人信息', key: 'Profile' },
-  { label: '修改密码', key: 'ChangePassword' },
-  { label: '退出登录', key: 'logout' }
-]
+  const userMenuOptions = [
+    { label: '个人信息', key: 'Profile' },
+    { label: '修改密码', key: 'ChangePassword' },
+    { label: '退出登录', key: 'logout' },
+  ]
 
-function handleUserMenuSelect(key: string) {
-  switch (key) {
-    case 'Profile': router.push({ name: 'Profile' }); break
-    case 'ChangePassword': router.push({ name: 'ChangePassword' }); break
-    case 'logout': logout(); break
+  function handleUserMenuSelect(key: string) {
+    switch (key) {
+      case 'Profile':
+        router.push({ name: 'Profile' })
+        break
+      case 'ChangePassword':
+        router.push({ name: 'ChangePassword' })
+        break
+      case 'logout':
+        logout()
+        break
+    }
   }
-}
 
-function logout() {
-  user.logout()
-  router.push('/login')
-}
-
-const homeMenuOption = computed(() => ({
-  label: menuStore.renderLabel('首页'),
-  key: 'Home',
-  title: '首页',
-  icon: menuStore.renderIcon('HomeOutline'),
-  onClick: async (e?: Event) => {
-    if (e && e.stopPropagation) e.stopPropagation()
-    try { await router.push({ name: 'Home' }) }
-    catch { message.error('无法导航到首页') }
+  function logout() {
+    user.logout()
+    router.push('/login')
   }
-}))
 
-const allMenuOptions = computed(() => {
-  const process = (opts: MenuOption[]): MenuOption[] => {
-    return opts.map(opt => {
-      const newOpt = { ...opt }
-      if (newOpt.children && newOpt.children.length) {
-        newOpt.children = process(newOpt.children)
-      } else if (!newOpt.onClick) {
-        newOpt.onClick = async (e?: Event) => {
-          if (e && e.stopPropagation) e.stopPropagation()
-          try {
-            let targetPath = newOpt.path || ''
-            targetPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`
-            targetPath = targetPath.replace(/\/+/g, '/')
-            await router.push(targetPath)
-          } catch { message.error('无法导航到该页面') }
+  const homeMenuOption = computed(() => ({
+    label: menuStore.renderLabel('首页'),
+    key: 'Home',
+    title: '首页',
+    icon: menuStore.renderIcon('HomeOutline'),
+    onClick: async (e?: Event) => {
+      if (e && e.stopPropagation) e.stopPropagation()
+      try {
+        await router.push({ name: 'Home' })
+      } catch {
+        message.error('无法导航到首页')
+      }
+    },
+  }))
+
+  const allMenuOptions = computed(() => {
+    const process = (opts: MenuOption[]): MenuOption[] => {
+      return opts.map((opt) => {
+        const newOpt = { ...opt }
+        if (newOpt.children && newOpt.children.length) {
+          newOpt.children = process(newOpt.children)
+        } else if (!newOpt.onClick) {
+          newOpt.onClick = async (e?: Event) => {
+            if (e && e.stopPropagation) e.stopPropagation()
+            try {
+              let targetPath = newOpt.path || ''
+              targetPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`
+              targetPath = targetPath.replace(/\/+/g, '/')
+              await router.push(targetPath)
+            } catch {
+              message.error('无法导航到该页面')
+            }
+          }
+        }
+        return newOpt
+      })
+    }
+    return [homeMenuOption.value, ...process(menuStore.menuOptions)]
+  })
+
+  interface Breadcrumb {
+    title: string
+    path: string
+  }
+
+  const breadcrumbs = ref<Breadcrumb[]>([])
+
+  const findMenuPath = (menus: MenuOption[], fullPath: string, parentPath = ''): Breadcrumb[] => {
+    for (const menu of menus) {
+      const currentPath = menu.path
+        ? menu.path.startsWith('/')
+          ? menu.path
+          : (parentPath + '/' + menu.path).replace(/\/+/g, '/')
+        : parentPath
+      if (currentPath === fullPath) {
+        return [{ title: menu.title || menu.key, path: currentPath }]
+      }
+      if (menu.children) {
+        const res = findMenuPath(menu.children, fullPath, currentPath)
+        if (res.length) {
+          return [{ title: menu.title || menu.key, path: currentPath }, ...res]
         }
       }
-      return newOpt
-    })
-  }
-  return [homeMenuOption.value, ...process(menuStore.menuOptions)]
-})
-
-interface Breadcrumb {
-  title: string
-  path: string
-}
-
-const breadcrumbs = ref<Breadcrumb[]>([])
-
-const findMenuPath = (menus: MenuOption[], fullPath: string, parentPath = ''): Breadcrumb[] => {
-  for (const menu of menus) {
-    const currentPath = menu.path
-      ? menu.path.startsWith('/') ? menu.path : (parentPath + '/' + menu.path).replace(/\/+/g, '/')
-      : parentPath
-    if (currentPath === fullPath) {
-      return [{ title: menu.title || menu.key, path: currentPath }]
     }
-    if (menu.children) {
-      const res = findMenuPath(menu.children, fullPath, currentPath)
-      if (res.length) {
-        return [{ title: menu.title || menu.key, path: currentPath }, ...res]
-      }
-    }
+    return []
   }
-  return []
-}
 
-const updateBreadcrumbs = () => {
-  const home: Breadcrumb = { title: '首页', path: '/' }
-  const menuPath = findMenuPath(menuStore.menuOptions, route.path)
-  breadcrumbs.value = [home, ...menuPath]
-}
+  const updateBreadcrumbs = () => {
+    const home: Breadcrumb = { title: '首页', path: '/' }
+    const menuPath = findMenuPath(menuStore.menuOptions, route.path)
+    breadcrumbs.value = [home, ...menuPath]
+  }
 
-
-watch(() => route.fullPath, updateBreadcrumbs, { immediate: true })
+  watch(() => route.fullPath, updateBreadcrumbs, { immediate: true })
 </script>

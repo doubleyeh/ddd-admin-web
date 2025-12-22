@@ -42,6 +42,9 @@
         <n-form-item label="名称" path="name">
           <n-input v-model:value="formModel.name" />
         </n-form-item>
+        <n-form-item label="菜单图标" path="icon">
+          <icon-select v-model:value="formModel.icon" />
+        </n-form-item>
         <n-form-item label="路径" path="path">
           <n-input v-model:value="formModel.path" />
         </n-form-item>
@@ -105,10 +108,12 @@
   import type { MenuDTO } from '@/types/system/menu'
   import type { PermissionDTO } from '@/types/system/permission'
   import { useUserStore } from '@/store/user'
+  import { NIcon } from 'naive-ui'
+  import * as Icons from '@vicons/ionicons5'
 
   const userStore = useUserStore()
-  const message = useMessage()
   const loading = ref(false)
+  const message = useMessage()
   const showModal = ref(false)
   const isEdit = ref(false)
   const tableData = ref<MenuDTO[]>([])
@@ -121,6 +126,7 @@
 
   const permForm = reactive({
     id: undefined as string | undefined,
+    icon: undefined as string | undefined,
     menuId: '',
     name: '',
     code: '',
@@ -129,15 +135,34 @@
   })
   const formModel = reactive({
     id: undefined as string | undefined,
+    icon: undefined as string | undefined,
     parentId: undefined as string | undefined,
     name: '',
     path: '',
     component: '',
   })
-  const rules = { name: { required: true }, path: { required: true } }
+  const rules = {
+    name: { required: true, message: '请输入菜单名称' },
+    icon: { required: true, message: '请选择图标' },
+    path: { required: true, message: '请输入组件路径' },
+  }
 
   const columns: DataTableColumns<MenuDTO> = [
-    { title: '菜单名称', key: 'name', minWidth: 250 },
+    {
+      title: '菜单名称',
+      key: 'name',
+      minWidth: 250,
+      render: (row) => {
+        const iconComp = row.icon ? (Icons as any)[row.icon] : null
+
+        return h('div', { style: { display: 'inline-flex', alignItems: 'center' } }, [
+          iconComp
+            ? h(NIcon, { size: 18, style: { marginRight: '8px' } }, { default: () => h(iconComp) })
+            : h('div', { style: { width: '26px' } }),
+          h('span', null, { default: () => row.name }),
+        ])
+      },
+    },
     { title: '路由路径', key: 'path', minWidth: 150, ellipsis: { tooltip: true } },
     {
       title: '操作',
@@ -315,14 +340,28 @@
     showModal.value = true
   }
 
+  const formRef = ref<any>(null)
   async function handleSave() {
     try {
-      isEdit.value
-        ? await menuApi.updateMenu(formModel.id!, formModel)
-        : await menuApi.createMenu(formModel as any)
-      loadData()
+      await formRef.value?.validate()
+
+      loading.value = true
+      if (isEdit.value) {
+        await menuApi.updateMenu(formModel.id!, formModel)
+      } else {
+        await menuApi.createMenu(formModel as any)
+      }
+
+      message.success('保存成功')
       showModal.value = false
+      loadData()
+    } catch (errors) {
+      if (errors instanceof Array) {
+        return
+      }
+      message.error('操作失败')
     } finally {
+      loading.value = false
     }
   }
 
