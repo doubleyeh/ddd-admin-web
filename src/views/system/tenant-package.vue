@@ -61,11 +61,33 @@
         </n-space>
       </template>
     </n-modal>
+    <n-modal v-model:show="showGrantModal" title="套餐授权" preset="card" style="width: 500px">
+      <n-scrollbar style="max-height: 500px" trigger="none">
+        <n-tree
+          block-line
+          checkable
+          expand-on-click
+          :cascade="false"
+          label-field="name"
+          key-field="id"
+          :data="menuOptions"
+          v-model:checked-keys="grantForm.menuIds"
+          v-model:expanded-keys="defaultExpandedKeys"
+          @update:checked-keys="handleCheckUpdate"
+        />
+      </n-scrollbar>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showGrantModal = false">取消</n-button>
+          <n-button type="primary" @click="handleGrantSave">确认授权</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </n-card>
 </template>
 
 <script setup lang="ts">
-  import { h, ref, reactive, onMounted, computed } from 'vue'
+  import { h, ref, reactive, onMounted } from 'vue'
   import {
     NButton,
     NDataTable,
@@ -81,6 +103,7 @@
     useMessage,
     type DataTableColumns,
     type FormInst,
+    NScrollbar,
   } from 'naive-ui'
   import * as PackageApi from '@/api/system/tenant-package'
   import * as MenuApi from '@/api/system/menu'
@@ -94,24 +117,23 @@
   const tableData = ref<TenantPackageDTO[]>([])
   const loading = ref(false)
   const showModal = ref(false)
+  const showGrantModal = ref(false)
   const isEdit = ref(false)
   const formRef = ref<FormInst | null>(null)
   const menuOptions = ref<MenuOptionDTO[]>([])
-  const defaultExpandedKeys = ref<number[]>([])
+  const defaultExpandedKeys = ref<string[]>([])
 
   const query = reactive({
     name: '',
   })
 
   const initialForm: TenantPackageSaveDTO = {
-    id: '',
     name: '',
     description: '',
     enabled: true,
-    menuIds: [],
-    permissionIds: [],
   }
   const formModel = ref<TenantPackageSaveDTO & { id?: string }>({ ...initialForm })
+  const grantForm = reactive({ packageId: '', menuIds: [] as string[] })
 
   const pagination = reactive({
     page: 1,
@@ -124,10 +146,6 @@
   const formRules = {
     name: [{ required: true, message: '请输入套餐名称', trigger: 'blur' }],
   }
-
-  const checkedKeys = computed(() => {
-    return [...formModel.value.menuIds, ...formModel.value.permissionIds]
-  })
 
   const columns: DataTableColumns<TenantPackageDTO> = [
     {
@@ -153,7 +171,7 @@
     {
       title: '操作',
       key: 'actions',
-      width: 160,
+      width: 200,
       render(row) {
         return h(
           NSpace,
@@ -166,6 +184,12 @@
                     NButton,
                     { size: 'small', onClick: () => handleEdit(row) },
                     { default: () => '编辑' }
+                  ),
+                userStore.hasPermission('tenantPackage:update') &&
+                  h(
+                    NButton,
+                    { size: 'small', type: 'info', onClick: () => handleOpenGrant(row) },
+                    { default: () => '授权' }
                   ),
                 userStore.hasPermission('tenantPackage:delete') &&
                   h(
@@ -183,20 +207,6 @@
       },
     },
   ]
-
-  async function loadMenuOptions() {
-    const res = await MenuApi.getMenuTreeOptions()
-    menuOptions.value = res
-    const allIds: number[] = []
-    const collectIds = (list: any[]) => {
-      list.forEach((item) => {
-        allIds.push(item.id)
-        if (item.children) collectIds(item.children)
-      })
-    }
-    collectIds(res)
-    defaultExpandedKeys.value = allIds
-  }
 
   async function fetchTableData() {
     loading.value = true
@@ -232,7 +242,7 @@
 
   function handleCreate() {
     isEdit.value = false
-    formModel.value = { ...initialForm, menuIds: [], permissionIds: [] }
+    formModel.value = { ...initialForm }
     showModal.value = true
   }
 
@@ -244,8 +254,6 @@
       name: detail.name,
       description: detail.description,
       enabled: detail.enabled,
-      menuIds: detail.menuIds || [],
-      permissionIds: detail.permissionIds || [],
     }
     showModal.value = true
   }
@@ -285,14 +293,115 @@
       message.error(e.message || '删除失败')
     }
   }
+  async function handleOpenGrant(row: TenantPackageDTO) {
+    grantForm.packageId = row.id
+    const [tree, detail] = await Promise.all([
+      MenuApi.getMenuTreeOptions(),
+      PackageApi.getById(row.id),
+    ])
 
+    const injectParentId = (nodes: any[], pId: string | null) => {
+      nodes.forEach((node) => {
+        node.parentId = pId
+        if (node.children) {
+          injectParentId(node.children, String(node.id))
+        }
+      })
+    }
+    injectParentId(tree, null)
+
+    menuOptions.value = tree
+
+    const selectedIds: string[] = []
+    if (detail.menuIds) {
+      detail.menuIds.forEach((m: any) => selectedIds.push(String(m)))
+    }
+    if (detail.permissionIds) {
+      detail.permissionIds.forEach((p: any) => selectedIds.push(String(p)))
+    }
+
+    grantForm.menuIds = selectedIds
+
+    const allIds: string[] = []
+    const collectIds = (list: any[]) => {
+      list.forEach((item) => {
+        allIds.push(String(item.id))
+        if (item.children) collectIds(item.children)
+      })
+    }
+    collectIds(tree)
+    defaultExpandedKeys.value = allIds
+
+    showGrantModal.value = true
+  }
+  function findNodeById(nodes: MenuOptionDTO[], id: string): MenuOptionDTO | null {
+    for (const node of nodes) {
+      if (String(node.id) === id) return node
+      if (node.children && node.children.length > 0) {
+        const found = findNodeById(node.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
   function handleCheckUpdate(
-    keys: Array<string>,
+    keys: Array<string | number>,
     _options: any[],
     meta: { action: 'check' | 'uncheck'; node: any }
   ) {
-    const newMenuIds = new Set<string>()
-    const newPermissionIds = new Set<string>()
+    const newKeys = new Set(keys.map((v) => String(v)))
+    const node = meta.node as any
+    if (!node) return
+
+    if (meta.action === 'check') {
+      const checkParent = (pId: string | null) => {
+        if (!pId || pId === '0' || pId === 'null') return
+        newKeys.add(String(pId))
+        const parentNode = findNodeById(menuOptions.value, String(pId))
+        if (parentNode) {
+          checkParent(parentNode.parentId)
+        }
+      }
+      checkParent(node.parentId)
+
+      if (!node.isPermission && node.children) {
+        const queryBtn = node.children.find(
+          (child: any) =>
+            child.isPermission && (child.name.includes('查询') || child.name.includes('列表'))
+        )
+        if (queryBtn) newKeys.add(String(queryBtn.id))
+      }
+    } else {
+      const uncheckChildren = (children: any[]) => {
+        children.forEach((child) => {
+          newKeys.delete(String(child.id))
+          if (child.children) uncheckChildren(child.children)
+        })
+      }
+      if (node.children) uncheckChildren(node.children)
+
+      const uncheckParentIfEmpty = (pId: string | null) => {
+        if (!pId || pId === '0' || pId === 'null') return
+        const parentNode = findNodeById(menuOptions.value, String(pId))
+        if (!parentNode || !parentNode.children) return
+
+        const hasActiveChild = parentNode.children.some((child: any) =>
+          newKeys.has(String(child.id))
+        )
+        if (!hasActiveChild) {
+          newKeys.delete(String(pId))
+          uncheckParentIfEmpty(parentNode.parentId)
+        }
+      }
+      uncheckParentIfEmpty(node.parentId)
+    }
+
+    grantForm.menuIds = Array.from(newKeys)
+  }
+
+  async function handleGrantSave() {
+    const menuIds: string[] = []
+    const permissionIds: string[] = []
 
     const allNodes: MenuOptionDTO[] = []
     const flatten = (nodes: MenuOptionDTO[]) => {
@@ -303,35 +412,23 @@
     }
     flatten(menuOptions.value)
 
-    keys.forEach((k) => {
-      const node = allNodes.find((n) => n.id === k)
+    grantForm.menuIds.forEach((id) => {
+      const node = allNodes.find((n) => String(n.id) === String(id))
       if (node) {
         if (node.isPermission) {
-          newPermissionIds.add(node.id)
+          permissionIds.push(String(node.id))
         } else {
-          newMenuIds.add(node.id)
+          menuIds.push(String(node.id))
         }
       }
     })
 
-    if (meta.action === 'check' && meta.node) {
-      const checkParent = (node: any) => {
-        if (node.parentId && node.parentId !== 0) {
-          newMenuIds.add(node.parentId)
-          const parent = allNodes.find((n) => n.id === node.parentId)
-          if (parent) checkParent(parent)
-        }
-      }
-      checkParent(meta.node)
-    }
-
-    formModel.value.menuIds = Array.from(newMenuIds)
-    formModel.value.permissionIds = Array.from(newPermissionIds)
+    await PackageApi.grant(grantForm.packageId, { menuIds, permissionIds })
+    message.success('操作成功')
+    showGrantModal.value = false
   }
-
   onMounted(() => {
     fetchTableData()
-    loadMenuOptions()
   })
 </script>
 

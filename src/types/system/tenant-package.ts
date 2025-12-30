@@ -10,10 +10,13 @@ export interface TenantPackageDTO {
 }
 
 export interface TenantPackageSaveDTO {
-  id: string | undefined
+  id?: string
   name: string
   description: string
   enabled: boolean
+}
+
+export interface TenantPackageGrantDTO {
   menuIds: string[]
   permissionIds: string[]
 }

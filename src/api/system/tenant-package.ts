@@ -2,6 +2,7 @@ import { http } from '@/utils/http'
 import type { Page } from '@/types/api'
 import type {
   TenantPackageDTO,
+  TenantPackageGrantDTO,
   TenantPackageOptionDTO,
   TenantPackageQuery,
   TenantPackageSaveDTO,
@@ -31,6 +32,10 @@ export function create(data: TenantPackageSaveDTO): Promise<void> {
 
 export function update(id: string, data: TenantPackageSaveDTO): Promise<void> {
   return http.put(`/tenant-packages/${id}`, data)
+}
+
+export function grant(id: string, data: TenantPackageGrantDTO): Promise<void> {
+  return http.put(`/tenant-packages/${id}/grant`, data)
 }
 
 export function updateState(id: string, state: boolean): Promise<TenantPackageDTO> {
