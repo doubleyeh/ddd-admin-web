@@ -5,6 +5,8 @@ export interface TenantDTO {
   contactPerson: string
   contactPhone: string
   enabled: boolean
+  packageId: string
+  packageName: string
 }
 
 export interface TenantOptionDTO {
@@ -20,6 +22,7 @@ export interface TenantSaveDTO {
   contactPerson: string
   contactPhone: string
   enabled: boolean
+  packageId?: string
 }
 
 export interface TenantCreateResultDTO extends TenantDTO {

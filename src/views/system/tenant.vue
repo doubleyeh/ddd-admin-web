@@ -55,6 +55,13 @@
         <n-form-item label="租户名称" path="name">
           <n-input v-model:value="formModel.name" />
         </n-form-item>
+        <n-form-item label="租户套餐" path="packageId">
+          <n-select
+            v-model:value="formModel.packageId"
+            :options="packageOptions"
+            placeholder="请选择租户套餐"
+          />
+        </n-form-item>
         <n-form-item label="联系人" path="contactPerson">
           <n-input v-model:value="formModel.contactPerson" />
         </n-form-item>
@@ -70,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-  import { h, ref, reactive, onMounted } from 'vue'
+  import { h, ref, reactive, onMounted, computed } from 'vue'
   import {
     NButton,
     NDataTable,
@@ -85,8 +92,10 @@
     useMessage,
     type DataTableColumns,
     type FormInst,
+    NSelect,
   } from 'naive-ui'
   import * as TenantApi from '@/api/system/tenant'
+  import * as PackageApi from '@/api/system/tenant-package'
   import type { TenantDTO, TenantSaveDTO, TenantCreateResultDTO } from '@/types/system/tenant'
   import { useUserStore } from '@/store/user'
 
@@ -98,6 +107,7 @@
   const showModal = ref(false)
   const isEdit = ref(false)
   const formRef = ref<FormInst | null>(null)
+  const packageOptions = ref<{ label: string; value: string }[]>([])
 
   const query = reactive({
     tenantId: '',
@@ -107,6 +117,7 @@
   const initialForm: TenantSaveDTO = {
     tenantId: '',
     name: '',
+    packageId: '',
     contactPerson: '',
     contactPhone: '',
     enabled: true,
@@ -122,13 +133,20 @@
   })
 
   const formRules = {
-    // tenantId: [
-    //   { required: true, message: '请输入租户编码', trigger: 'blur' },
-    //   { max: 50, message: '长度不能超过50个字符', trigger: 'blur' }
-    // ],
     name: [
       { required: true, message: '请输入租户名称', trigger: 'blur' },
       { max: 100, message: '长度不能超过100个字符', trigger: 'blur' },
+    ],
+    packageId: [
+      {
+        trigger: 'change',
+        validator: (_: any, value: string) => {
+          if (!userStore.isSuperTenant && !value) {
+            return new Error('请选择租户套餐')
+          }
+          return true
+        },
+      },
     ],
   }
 
@@ -146,6 +164,7 @@
       },
       { title: '租户编码', key: 'tenantId' },
       { title: '租户名称', key: 'name' },
+      { title: '套餐名称', key: 'packageName' },
       { title: '联系人', key: 'contactPerson' },
       { title: '联系电话', key: 'contactPhone' },
       {
@@ -244,6 +263,10 @@
       loading.value = false
     }
   }
+  async function loadPackageOptions() {
+    const data = await PackageApi.getOptions()
+    packageOptions.value = data.map((i) => ({ label: i.name, value: i.id }))
+  }
 
   function handleSearch() {
     pagination.page = 1
@@ -275,7 +298,7 @@
 
   function handleEdit(row: TenantDTO) {
     isEdit.value = true
-    formModel.value = { ...row, id: row.id }
+    formModel.value = { ...row, id: row.id, packageId: row.packageId }
     showModal.value = true
   }
 
@@ -323,6 +346,7 @@
 
   onMounted(() => {
     fetchTableData()
+    loadPackageOptions()
   })
 </script>
 
