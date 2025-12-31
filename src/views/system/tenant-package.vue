@@ -300,24 +300,40 @@
       PackageApi.getById(row.id),
     ])
 
-    const injectParentId = (nodes: any[], pId: string | null) => {
+    const processNodes = (nodes: MenuOptionDTO[], pId: string | null) => {
       nodes.forEach((node) => {
         node.parentId = pId
+        if (node.permissions) {
+          if (!node.children) {
+            node.children = []
+          }
+          const childIds = new Set(node.children.map((c) => c.id))
+          node.permissions.forEach((p) => {
+            if (!childIds.has(p.id)) {
+              node.children!.push({
+                id: p.id,
+                name: `[按钮]${p.name}`,
+                isPermission: true,
+                parentId: String(node.id),
+              } as MenuOptionDTO)
+            }
+          })
+        }
+
         if (node.children) {
-          injectParentId(node.children, String(node.id))
+          processNodes(node.children, String(node.id))
         }
       })
     }
-    injectParentId(tree, null)
-
+    processNodes(tree, null)
     menuOptions.value = tree
 
     const selectedIds: string[] = []
-    if (detail.menuIds) {
-      detail.menuIds.forEach((m: any) => selectedIds.push(String(m)))
+    if (detail.menus) {
+      detail.menus.forEach((m: any) => selectedIds.push(String(m.id)))
     }
-    if (detail.permissionIds) {
-      detail.permissionIds.forEach((p: any) => selectedIds.push(String(p)))
+    if (detail.permissions) {
+      detail.permissions.forEach((p: any) => selectedIds.push(String(p.id)))
     }
 
     grantForm.menuIds = selectedIds
@@ -354,6 +370,18 @@
     if (!node) return
 
     if (meta.action === 'check') {
+      const checkChildren = (children: any[]) => {
+        children.forEach((child) => {
+          newKeys.add(String(child.id))
+          if (child.children) {
+            checkChildren(child.children)
+          }
+        })
+      }
+      if (node.children) {
+        checkChildren(node.children)
+      }
+
       const checkParent = (pId: string | null) => {
         if (!pId || pId === '0' || pId === 'null') return
         newKeys.add(String(pId))
@@ -363,14 +391,6 @@
         }
       }
       checkParent(node.parentId)
-
-      if (!node.isPermission && node.children) {
-        const queryBtn = node.children.find(
-          (child: any) =>
-            child.isPermission && (child.name.includes('查询') || child.name.includes('列表'))
-        )
-        if (queryBtn) newKeys.add(String(queryBtn.id))
-      }
     } else {
       const uncheckChildren = (children: any[]) => {
         children.forEach((child) => {

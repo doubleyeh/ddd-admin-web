@@ -397,6 +397,18 @@
     if (!node) return
 
     if (meta.action === 'check') {
+      const checkChildren = (children: any[]) => {
+        children.forEach((child) => {
+          newKeys.add(String(child.id))
+          if (child.children) {
+            checkChildren(child.children)
+          }
+        })
+      }
+      if (node.children) {
+        checkChildren(node.children)
+      }
+
       const checkParent = (pId: string | null) => {
         if (!pId || pId === '0' || pId === 'null') return
         newKeys.add(String(pId))
@@ -406,14 +418,6 @@
         }
       }
       checkParent(node.parentId)
-
-      if (!node.isPermission && node.children) {
-        const queryBtn = node.children.find(
-          (child: any) =>
-            child.isPermission && (child.name.includes('查询') || child.name.includes('列表'))
-        )
-        if (queryBtn) newKeys.add(String(queryBtn.id))
-      }
     } else {
       const uncheckChildren = (children: any[]) => {
         children.forEach((child) => {

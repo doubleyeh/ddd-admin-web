@@ -3,8 +3,8 @@ export interface TenantPackageDTO {
   name: string
   description: string
   enabled: boolean
-  menuIds: string[]
-  permissionIds: string[]
+  permissions: any[]
+  menus: any[]
   createTime?: string
   updateTime?: string
 }
