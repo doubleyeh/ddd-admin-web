@@ -45,11 +45,3 @@ export function getRoleOptions(query: Record<string, any> = {}): Promise<RoleOpt
   }
   return http.get('/roles/options', { params })
 }
-
-export function getMenus(id: string): Promise<any[]> {
-  return http.get(`/roles/${id}/menus`)
-}
-
-export function getPermissions(id: string): Promise<any[]> {
-  return http.get(`/roles/${id}/permissions`)
-}
