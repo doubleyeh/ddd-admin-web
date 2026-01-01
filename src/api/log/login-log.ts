@@ -10,6 +10,7 @@ export function findPage(
   const params = {
     page,
     size,
+    sort: 'createTime,desc',
     ...query,
   }
   return http.get('/login-logs', { params })
