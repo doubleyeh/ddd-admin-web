@@ -132,8 +132,9 @@
     type FormInst,
   } from 'naive-ui'
   import * as UserApi from '@/api/system/user'
-  import { getOptions } from '@/api/system/tenant'
+  import { getOptions as getTenantOptions } from '@/api/system/tenant'
   import { getRoleOptions } from '@/api/system/role'
+  import { getDictDataList } from '@/api/system/dict'
   import type { UserDTO, UserPostDTO, UserPutDTO, UserQuery } from '@/types/system/user'
   import { useUserStore } from '@/store/user'
   import dayjs from 'dayjs'
@@ -162,11 +163,7 @@
     roleId: null,
   })
 
-  const stateOptions = [
-    { label: '启用', value: 1 },
-    { label: '禁用', value: 0 },
-  ]
-
+  const stateOptions = ref<{ label: string; value: number }[]>([])
   const roleOptions = ref<{ label: string; value: string }[]>([])
   const loadingRoles = ref(false)
 
@@ -324,6 +321,18 @@
 
   const columns = createColumns()
 
+  async function fetchStateOptions() {
+    try {
+      const dictData = await getDictDataList('sys_user_status')
+      stateOptions.value = dictData.map((item) => ({
+        label: item.label,
+        value: Number(item.value),
+      }))
+    } catch (error) {
+      message.error('加载用户状态字典失败')
+    }
+  }
+
   async function fetchRoleOptions(tenantId: string) {
     if (!tenantId) {
       roleOptions.value = []
@@ -361,11 +370,10 @@
 
   async function fetchTenantOptions() {
     try {
-      const tenantList = await getOptions('')
+      const tenantList = await getTenantOptions('')
       allTenantOptions.value = [...tenantList.map((t) => ({ label: t.name, value: t.tenantId }))]
     } catch (error: any) {
       message.error(error.message || '获取租户列表失败')
-    } finally {
     }
   }
 
@@ -491,6 +499,7 @@
   }
 
   onMounted(() => {
+    fetchStateOptions()
     if (isSuperTenant) {
       fetchTenantOptions()
     } else {
