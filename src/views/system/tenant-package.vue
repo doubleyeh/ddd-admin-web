@@ -3,6 +3,15 @@
     <div class="flex items-center mb-4 flex-nowrap">
       <n-space wrap-item>
         <n-input v-model:value="query.name" placeholder="套餐名称" clearable class="w-48" />
+        <div class="w-28">
+          <n-select
+            v-model:value="query.state"
+            :options="stateOptions"
+            placeholder="状态"
+            clearable
+            class="w-40"
+          />
+        </div>
       </n-space>
 
       <n-space class="ml-4">
@@ -47,8 +56,16 @@
         <n-form-item label="套餐名称" path="name">
           <n-input v-model:value="formModel.name" placeholder="请输入套餐名称" />
         </n-form-item>
-        <n-form-item label="状态" path="enabled">
-          <n-switch v-model:value="formModel.enabled" />
+        <n-form-item label="状态" path="state">
+          <n-radio-group v-model:value="formModel.state">
+            <n-radio-button
+              v-for="dict in tenantPackageStatusOptions"
+              :key="dict.value"
+              :value="parseInt(dict.value)"
+            >
+              {{ dict.label }}
+            </n-radio-button>
+          </n-radio-group>
         </n-form-item>
         <n-form-item label="备注" path="description">
           <n-input v-model:value="formModel.description" type="textarea" placeholder="请输入备注" />
@@ -104,11 +121,16 @@
     type DataTableColumns,
     type FormInst,
     NScrollbar,
+    NRadioGroup,
+    NRadioButton,
+    NSelect,
   } from 'naive-ui'
   import * as PackageApi from '@/api/system/tenant-package'
   import * as MenuApi from '@/api/system/menu'
+  import * as DictApi from '@/api/system/dict'
   import type { TenantPackageDTO, TenantPackageSaveDTO } from '@/types/system/tenant-package'
   import type { MenuOptionDTO } from '@/types/system/menu'
+  import type { DictDataDTO } from '@/types/system/dict'
   import { useUserStore } from '@/store/user'
 
   const userStore = useUserStore()
@@ -122,15 +144,18 @@
   const formRef = ref<FormInst | null>(null)
   const menuOptions = ref<MenuOptionDTO[]>([])
   const defaultExpandedKeys = ref<string[]>([])
+  const tenantPackageStatusOptions = ref<DictDataDTO[]>([])
+  const stateOptions = ref<{ label: string; value: number }[]>([])
 
   const query = reactive({
     name: '',
+    state: null,
   })
 
   const initialForm: TenantPackageSaveDTO = {
     name: '',
     description: '',
-    enabled: true,
+    state: 1,
   }
   const formModel = ref<TenantPackageSaveDTO & { id?: string }>({ ...initialForm })
   const grantForm = reactive({ packageId: '', menuIds: [] as string[] })
@@ -156,18 +181,18 @@
       render: (_, idx) => (pagination.page - 1) * pagination.pageSize + idx + 1,
     },
     { title: '套餐名称', key: 'name' },
+    { title: '备注', key: 'description' },
     {
       title: '状态',
-      key: 'enabled',
+      key: 'state',
       render(row) {
         return h(NSwitch, {
-          value: row.enabled,
+          value: row.state === 1,
           disabled: !userStore.hasPermission('tenantPackage:update'),
-          'onUpdate:value': (v: boolean) => handleUpdateState(row.id, v),
+          'onUpdate:value': (v: boolean) => handleUpdateState(row.id, v ? 1 : 0),
         })
       },
     },
-    { title: '备注', key: 'description' },
     {
       title: '操作',
       key: 'actions',
@@ -226,6 +251,7 @@
 
   function handleReset() {
     query.name = ''
+    query.state = null
     handleSearch()
   }
 
@@ -253,7 +279,7 @@
       id: detail.id,
       name: detail.name,
       description: detail.description,
-      enabled: detail.enabled,
+      state: detail.state,
     }
     showModal.value = true
   }
@@ -274,13 +300,14 @@
     }
   }
 
-  async function handleUpdateState(id: string, state: boolean) {
+  async function handleUpdateState(id: string, state: number) {
     try {
       await PackageApi.updateState(id, state)
       message.success('状态更新成功')
       fetchTableData()
     } catch (e: any) {
       message.error(e.message || '状态更新失败')
+      fetchTableData()
     }
   }
 
@@ -447,8 +474,19 @@
     message.success('操作成功')
     showGrantModal.value = false
   }
-  onMounted(() => {
+
+  async function init() {
+    const dicts = await DictApi.getDictDataList('sys_tenant_package_status')
+    tenantPackageStatusOptions.value = dicts
+    stateOptions.value = dicts.map((item) => ({
+      label: item.label,
+      value: Number(item.value),
+    }))
     fetchTableData()
+  }
+
+  onMounted(() => {
+    init()
   })
 </script>
 

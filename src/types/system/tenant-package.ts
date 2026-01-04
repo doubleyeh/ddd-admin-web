@@ -2,7 +2,7 @@ export interface TenantPackageDTO {
   id: string
   name: string
   description: string
-  enabled: boolean
+  state: number
   permissions: any[]
   menus: any[]
   createTime?: string
@@ -13,7 +13,7 @@ export interface TenantPackageSaveDTO {
   id?: string
   name: string
   description: string
-  enabled: boolean
+  state: number
 }
 
 export interface TenantPackageGrantDTO {

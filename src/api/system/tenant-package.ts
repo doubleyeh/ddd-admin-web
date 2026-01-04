@@ -38,10 +38,9 @@ export function grant(id: string, data: TenantPackageGrantDTO): Promise<void> {
   return http.put(`/tenant-packages/${id}/grant`, data)
 }
 
-export function updateState(id: string, state: boolean): Promise<TenantPackageDTO> {
+export function updateState(id: string, state: number): Promise<TenantPackageDTO> {
   return http.put(`/tenant-packages/${id}/state?state=${state}`, null)
 }
-
 export function deleteById(id: string): Promise<void> {
   return http.delete(`/tenant-packages/${id}`)
 }
