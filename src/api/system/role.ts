@@ -31,7 +31,7 @@ export function grant(id: string, data: RoleGrantDTO): Promise<void> {
   return http.post(`/roles/${id}/grant`, data)
 }
 
-export function updateState(id: string, state: boolean): Promise<RoleDTO> {
+export function updateState(id: string, state: number): Promise<RoleDTO> {
   return http.put(`/roles/${id}/state?state=${state}`, {})
 }
 

@@ -14,6 +14,14 @@
         </div>
         <n-input v-model:value="queryModel.name" placeholder="角色名称" clearable class="w-40" />
         <n-input v-model:value="queryModel.code" placeholder="角色编码" clearable class="w-40" />
+        <div class="w-28">
+          <n-select
+            v-model:value="queryModel.state"
+            :options="stateOptions"
+            placeholder="角色状态"
+            clearable
+          />
+        </div>
       </n-space>
       <n-space class="ml-4">
         <n-button type="primary" @click="handleSearch">查询</n-button>
@@ -76,8 +84,8 @@
         <n-form-item label="显示排序" path="sort">
           <n-input-number v-model:value="formModel.sort" />
         </n-form-item>
-        <n-form-item label="状态" path="enabled">
-          <n-switch v-model:value="formModel.enabled" />
+        <n-form-item label="状态" path="state">
+          <n-select v-model:value="formModel.state" :options="stateOptions" />
         </n-form-item>
         <n-form-item label="描述" path="description">
           <n-input v-model:value="formModel.description" type="textarea" />
@@ -127,11 +135,14 @@
     useMessage,
     type DataTableColumns,
     type FormInst,
+    NSelect,
+    NInputNumber,
   } from 'naive-ui'
   import { pinyin } from 'pinyin-pro'
   import * as roleApi from '@/api/system/role'
   import * as menuApi from '@/api/system/menu'
   import { getOptions } from '@/api/system/tenant'
+  import { getDictDataList } from '@/api/system/dict'
   import type { RoleDTO, RoleSaveDTO } from '@/types/system/role'
   import type { MenuOptionDTO } from '@/types/system/menu'
   import { useUserStore } from '@/store/user'
@@ -147,7 +158,8 @@
   const tableData = ref<RoleDTO[]>([])
   const menuOptions = ref<MenuOptionDTO[]>([])
   const allTenantOptions = ref<{ label: string; value: string }[]>([])
-  const queryModel = reactive({ name: '', code: '', tenantId: null })
+  const queryModel = reactive({ name: '', code: '', tenantId: null, state: null })
+  const stateOptions = ref<{ label: string; value: number }[]>([])
   const pagination = reactive({
     page: 1,
     pageSize: 10,
@@ -161,7 +173,7 @@
     code: '',
     description: '',
     sort: 1,
-    enabled: true,
+    state: 1,
     tenantId: userStore.tenantId,
   })
 
@@ -186,12 +198,12 @@
     { title: '角色编码', key: 'code' },
     {
       title: '状态',
-      key: 'enabled',
+      key: 'state',
       render(row) {
         return h(NSwitch, {
-          value: row.enabled,
+          value: row.state === 1,
           disabled: !userStore.hasPermission('role:update'),
-          'onUpdate:value': (v) => handleUpdateState(row.id, v),
+          'onUpdate:value': (value: boolean) => handleUpdateState(row.id, value ? 1 : 0),
         })
       },
     },
@@ -259,6 +271,7 @@
     queryModel.name = ''
     queryModel.code = ''
     queryModel.tenantId = null
+    queryModel.state = null
     handleSearch()
   }
   function handlePageChange(p: number) {
@@ -278,7 +291,7 @@
       code: '',
       description: '',
       sort: 1,
-      enabled: true,
+      state: 1,
       tenantId: userStore.tenantId,
     }
     showModal.value = true
@@ -293,7 +306,7 @@
       code: detail.code,
       description: detail.description,
       sort: detail.sort,
-      enabled: detail.enabled,
+      state: detail.state,
       tenantId: row.tenantId,
     }
     showModal.value = true
@@ -311,9 +324,9 @@
     loadData()
   }
 
-  async function handleUpdateState(id: string, state: boolean) {
+  async function handleUpdateState(id: string, state: number) {
     await roleApi.updateState(id, state)
-    message.success('更新成功')
+    message.success(`${state === 1 ? '启用' : '禁用'}成功`)
     loadData()
   }
 
@@ -485,13 +498,24 @@
     message.success('操作成功')
     showGrantModal.value = false
   }
-
+  async function fetchStateOptions() {
+    try {
+      const dictData = await getDictDataList('sys_role_status')
+      stateOptions.value = dictData.map((item) => ({
+        label: item.label,
+        value: Number(item.value),
+      }))
+    } catch (error) {
+      message.error('加载角色状态字典失败')
+    }
+  }
   onMounted(() => {
     if (isSuperTenant)
       getOptions('').then(
         (l) => (allTenantOptions.value = l.map((t) => ({ label: t.name, value: t.tenantId })))
       )
     loadData()
+    fetchStateOptions()
   })
 </script>
 

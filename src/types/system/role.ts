@@ -4,7 +4,7 @@ export interface RoleDTO {
   code: string
   description: string
   sort: number
-  enabled: boolean
+  state: number
   permissions: any[]
   menus: any[]
   tenantId: string
@@ -17,7 +17,7 @@ export interface RoleSaveDTO {
   code: string
   description?: string
   sort?: number
-  enabled?: boolean
+  state?: number
   tenantId: string
 }
 
