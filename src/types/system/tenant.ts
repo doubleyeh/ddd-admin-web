@@ -4,7 +4,7 @@ export interface TenantDTO {
   name: string
   contactPerson: string
   contactPhone: string
-  enabled: boolean
+  state: number
   packageId: string
   packageName: string
 }
@@ -21,7 +21,7 @@ export interface TenantSaveDTO {
   name: string
   contactPerson: string
   contactPhone: string
-  enabled: boolean
+  state: number
   packageId?: string
 }
 

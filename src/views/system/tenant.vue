@@ -4,6 +4,14 @@
       <n-space wrap-item>
         <n-input v-model:value="query.tenantId" placeholder="租户编码" clearable class="w-28" />
         <n-input v-model:value="query.name" placeholder="租户名称" clearable class="w-28" />
+        <div class="w-28">
+          <n-select
+            v-model:value="query.state"
+            :options="stateOptions"
+            placeholder="租户状态"
+            clearable
+          />
+        </div>
       </n-space>
 
       <n-space class="ml-4">
@@ -68,8 +76,8 @@
         <n-form-item label="联系电话" path="contactPhone">
           <n-input v-model:value="formModel.contactPhone" />
         </n-form-item>
-        <n-form-item label="是否启用" path="enabled">
-          <n-switch v-model:value="formModel.enabled" />
+        <n-form-item label="状态" path="state">
+          <n-select v-model:value="formModel.state" :options="stateOptions" />
         </n-form-item>
       </n-form>
     </n-modal>
@@ -77,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-  import { h, ref, reactive, onMounted, computed } from 'vue'
+  import { h, ref, reactive, onMounted } from 'vue'
   import {
     NButton,
     NDataTable,
@@ -96,6 +104,7 @@
   } from 'naive-ui'
   import * as TenantApi from '@/api/system/tenant'
   import * as PackageApi from '@/api/system/tenant-package'
+  import { getDictDataList } from '@/api/system/dict'
   import type { TenantDTO, TenantSaveDTO, TenantCreateResultDTO } from '@/types/system/tenant'
   import { useUserStore } from '@/store/user'
 
@@ -108,10 +117,12 @@
   const isEdit = ref(false)
   const formRef = ref<FormInst | null>(null)
   const packageOptions = ref<{ label: string; value: string }[]>([])
+  const stateOptions = ref<{ label: string; value: number }[]>([])
 
   const query = reactive({
     tenantId: '',
     name: '',
+    state: null,
   })
 
   const initialForm: TenantSaveDTO = {
@@ -120,7 +131,7 @@
     packageId: '',
     contactPerson: '',
     contactPhone: '',
-    enabled: true,
+    state: 1,
   }
   const formModel = ref<TenantSaveDTO>({ ...initialForm })
 
@@ -168,14 +179,14 @@
       { title: '联系人', key: 'contactPerson' },
       { title: '联系电话', key: 'contactPhone' },
       {
-        title: '是否启用',
-        key: 'enabled',
+        title: '状态',
+        key: 'state',
         render(row) {
           return h(NSwitch, {
-            value: row.enabled,
+            value: row.state === 1,
             disabled: !userStore.hasPermission('tenant:update'),
             'onUpdate:value': (value: boolean) => {
-              handleUpdateState(row.id, value)
+              handleUpdateState(row.id, value ? 1 : 0)
             },
           })
         },
@@ -231,19 +242,19 @@
 
   const columns = createColumns()
 
-  async function handleUpdateState(id: string, enabled: boolean) {
+  async function handleUpdateState(id: string, state: number) {
     const index = tableData.value.findIndex((item: TenantDTO) => item.id === id)
     if (index > -1) {
-      tableData.value[index]!.enabled = enabled
+      tableData.value[index]!.state = state
     }
 
     try {
-      await TenantApi.updateState(id, enabled)
-      message.success(`${enabled ? '启用' : '禁用'}成功`)
+      await TenantApi.updateState(id, state)
+      message.success(`${state == 1 ? '启用' : '禁用'}成功`)
     } catch (error: any) {
-      message.error(error.message || `${enabled ? '启用' : '禁用'}失败`)
+      message.error(error.message || `${state == 1 ? '启用' : '禁用'}失败`)
       if (index > -1) {
-        tableData.value[index]!.enabled = !enabled
+        tableData.value[index]!.state = state == 1 ? 0 : 1
       }
     }
   }
@@ -263,9 +274,22 @@
       loading.value = false
     }
   }
+
   async function loadPackageOptions() {
     const data = await PackageApi.getOptions()
     packageOptions.value = data.map((i) => ({ label: i.name, value: i.id }))
+  }
+
+  async function fetchStateOptions() {
+    try {
+      const dictData = await getDictDataList('sys_tenant_status')
+      stateOptions.value = dictData.map((item) => ({
+        label: item.label,
+        value: Number(item.value),
+      }))
+    } catch (error) {
+      message.error('加载租户状态字典失败')
+    }
   }
 
   function handleSearch() {
@@ -276,6 +300,7 @@
   function handleReset() {
     query.tenantId = ''
     query.name = ''
+    query.state = null
     handleSearch()
   }
 
@@ -347,6 +372,7 @@
   onMounted(() => {
     fetchTableData()
     loadPackageOptions()
+    fetchStateOptions()
   })
 </script>
 

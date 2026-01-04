@@ -36,7 +36,7 @@ export function update(id: string, data: TenantSaveDTO): Promise<TenantDTO> {
   return http.put(`/tenants/${id}`, data)
 }
 
-export function updateState(id: string, state: Boolean): Promise<TenantDTO> {
+export function updateState(id: string, state: number): Promise<TenantDTO> {
   return http.put(`/tenants/${id}/state?state=${state}`, {})
 }
 
